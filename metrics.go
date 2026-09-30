@@ -629,7 +629,7 @@ type MemTableRangeDelCacheMetrics struct {
 	// SpliceVersionFragments records, for each batch that SpliceDuration
 	// records, the number of fragments in the version of the cache that the
 	// batch's splices produced. The cache holds its fragments in chunks of
-	// about 128, and a splice copies the chunk index, so part of a splice's cost
+	// about 256, and a splice copies the chunk index, so part of a splice's cost
 	// grows with this count divided by the chunk size.
 	SpliceVersionFragments prometheus.Histogram
 	// Invalidations is the cumulative number of times a memtable's cache of
