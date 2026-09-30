@@ -401,6 +401,14 @@ func Open(dirname string, opts *Options) (db *DB, err error) {
 		d.mu.mem.mutable, entry = d.newMemTable(d.mu.versions.getNextDiskFileNum(), d.mu.versions.logSeqNum.Load(), 0 /* minSize */)
 		d.mu.mem.queue = append(d.mu.mem.queue, entry)
 	}
+	// Build the range deletion fragments of the memtables that replayWAL applied
+	// batches to, before the replayed batches become visible or anything can
+	// flush the memtables.
+	for _, entry := range d.mu.mem.queue {
+		if mem, ok := entry.flushable.(*memTable); ok {
+			mem.buildDeferredRangeDels()
+		}
+	}
 	d.mu.versions.visibleSeqNum.Store(d.mu.versions.logSeqNum.Load())
 
 	if !d.opts.ReadOnly {

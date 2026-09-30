@@ -460,11 +460,16 @@ func (d *DB) replayWAL(
 		mem, entry = nil, nil
 	}
 
+	// Nothing reads the memtables that replay applies batches to until every WAL
+	// is replayed, so they defer building their range deletion fragments until
+	// then (see buildDeferredRangeDels in Open).
 	mem = d.mu.mem.mutable
 	if mem != nil {
 		entry = d.mu.mem.queue[len(d.mu.mem.queue)-1]
 		if !d.opts.ReadOnly {
 			flushMem()
+		} else {
+			mem.deferRangeDelFragments()
 		}
 	}
 
@@ -474,6 +479,7 @@ func (d *DB) replayWAL(
 			return
 		}
 		mem, entry = d.newMemTable(base.DiskFileNum(ll.Num), seqNum, 0 /* minSize */)
+		mem.deferRangeDelFragments()
 		d.mu.mem.mutable = mem
 		d.mu.mem.queue = append(d.mu.mem.queue, entry)
 	}

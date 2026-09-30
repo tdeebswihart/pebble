@@ -573,7 +573,10 @@ type WALMetrics struct {
 //     range deletions into a new version of the cache before the batch becomes
 //     visible, so readers never rebuild the cache or wait for it. Batches that
 //     contain range deletions splice one at a time. The Splice histograms
-//     record these memtables' splices.
+//     record these memtables' splices. WAL replay doesn't splice: Open builds
+//     the cache of each memtable that replay applied batches to once, after
+//     replay and before the DB can be read, and records the build in the
+//     Rebuild histograms other than ConcurrentRebuilds.
 //
 // The statistics cover all of the DB's memtables. They are only collected for
 // range deletions, not for range keys.
@@ -597,9 +600,10 @@ type MemTableRangeDelCacheMetrics struct {
 	// RebuildFragments records, for each rebuild, the number of fragmented spans
 	// that the rebuild produced.
 	RebuildFragments prometheus.Histogram
-	// ConcurrentRebuilds records, for each rebuild, the number of rebuilds in
-	// flight when it started, including itself. Rebuilds are counted across all
-	// of the DB's memtables. The unit is rebuilds.
+	// ConcurrentRebuilds records, for each rebuild other than a build after WAL
+	// replay, the number of rebuilds in flight when it started, including
+	// itself. Rebuilds are counted across all of the DB's memtables. The unit
+	// is rebuilds.
 	ConcurrentRebuilds prometheus.Histogram
 	// SpliceDuration records, for each batch that contains a range deletion
 	// and is applied to a memtable that splices, the time in nanoseconds spent
@@ -620,7 +624,8 @@ type MemTableRangeDelCacheMetrics struct {
 	SpliceVersionFragments prometheus.Histogram
 	// Invalidations is the cumulative number of times a memtable's cache of
 	// fragmented range deletions was invalidated or replaced by a new version,
-	// which is once per applied batch that contains a range deletion.
+	// which is once per applied batch that contains a range deletion. Batches
+	// that WAL replay applies to a memtable that splices aren't counted.
 	Invalidations uint64
 }
 

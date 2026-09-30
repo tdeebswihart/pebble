@@ -2421,3 +2421,264 @@ func TestDisableWAL(t *testing.T) {
 
 	require.NoError(t, d.Close())
 }
+
+// TestReplayRangeDelFragments replays WALs of interleaved range deletion and
+// point batches, with memtable rotations, a flushable ingest and a large batch
+// among them, into memtables that splice range deletions. Replay defers
+// building the memtables' fragments, and Open builds them once. After Open, no
+// memtable still defers its fragments, the replay recorded one build per
+// memtable with range deletions and no splices, and reads match those before
+// the DB was closed. In read-only mode, where the replayed memtables stay in
+// the queue, each one's fragments match referenceRangeDelFragments over its
+// skiplist.
+func TestReplayRangeDelFragments(t *testing.T) {
+	defer leaktest.AfterTest(t)()
+	for _, readOnly := range []bool{false, true} {
+		t.Run(fmt.Sprintf("read-only=%t", readOnly), func(t *testing.T) {
+			testReplayRangeDelFragments(t, readOnly)
+		})
+	}
+}
+
+func testReplayRangeDelFragments(t *testing.T, readOnly bool) {
+	seed := uint64(time.Now().UnixNano())
+	t.Logf("seed: %d", seed)
+	rng := rand.New(rand.NewPCG(seed, seed))
+
+	mem := vfs.NewMem()
+	require.NoError(t, mem.MkdirAll("ext", 0755))
+	makeOpts := func(readOnly bool) *Options {
+		opts := &Options{
+			FS:                 mem,
+			FormatMajorVersion: internalFormatNewest,
+			Logger:             testutils.Logger{T: t},
+			MemTableSize:       4 << 20,
+			// Flushes are blocked while the test writes, so the queue of
+			// flushables must be able to grow without stalling writes or
+			// ingests.
+			MemTableStopWritesThreshold: 100,
+			DisableAutomaticCompactions: true,
+			ReadOnly:                    readOnly,
+		}
+		opts.Experimental.IncrementalRangeDelFragments = func() bool { return true }
+		return opts
+	}
+	d, err := Open("", makeOpts(false))
+	require.NoError(t, err)
+	// Block flushes so that every batch is still in a WAL when the DB closes.
+	d.mu.Lock()
+	d.mu.compact.flushing = true
+	d.mu.Unlock()
+
+	key := func(pos int) []byte { return fmt.Appendf(nil, "%04d", pos) }
+	value := bytes.Repeat([]byte{'v'}, 512)
+	// memTableRangeDels counts the range deletions in batches that replay
+	// applies to memtables, which excludes the large batch.
+	var memTableRangeDels int
+	writeBatches := func(n int) {
+		t.Helper()
+		for range n {
+			b := d.NewBatch()
+			for range rng.IntN(3) {
+				require.NoError(t, b.Set(key(rng.IntN(1000)), value, nil))
+			}
+			for range rng.IntN(3) {
+				start := rng.IntN(990)
+				require.NoError(t, b.DeleteRange(key(start), key(start+1+rng.IntN(20)), nil))
+				memTableRangeDels++
+			}
+			require.NoError(t, b.Commit(nil))
+		}
+	}
+	readAll := func() []string {
+		t.Helper()
+		iter, err := d.NewIter(nil)
+		require.NoError(t, err)
+		var kvs []string
+		for valid := iter.First(); valid; valid = iter.Next() {
+			v := iter.Value()
+			kvs = append(kvs, fmt.Sprintf("%s:%q", iter.Key(), v[:min(len(v), 8)]))
+		}
+		require.NoError(t, iter.Close())
+		return kvs
+	}
+
+	writeBatches(300)
+	// Stack 14 to 21 range deletions over each of eight spans that no other
+	// range deletion reaches. For some of these counts, the Fragmenter's copy
+	// of a fragment's keys is rounded up to a size class with spare capacity.
+	b := d.NewBatch()
+	for i := range 8 {
+		for range 14 + i {
+			require.NoError(t, b.DeleteRange(key(2000+2*i), key(2001+2*i), nil))
+			memTableRangeDels++
+		}
+	}
+	require.NoError(t, b.Commit(nil))
+	// Rotate the memtable and the WAL.
+	_, err = d.AsyncFlush()
+	require.NoError(t, err)
+	writeBatches(300)
+
+	// Ingest a table that overlaps the memtable. With flushes blocked, it
+	// becomes a flushable ingest.
+	require.NoError(t, d.Set(key(500), value, nil))
+	f, err := mem.Create("ext/table", vfs.WriteCategoryUnspecified)
+	require.NoError(t, err)
+	w := sstable.NewWriter(objstorageprovider.NewFileWritable(f), sstable.WriterOptions{
+		TableFormat: d.TableFormat(),
+	})
+	require.NoError(t, w.Set(key(500), []byte("ingested")))
+	require.NoError(t, w.Close())
+	require.NoError(t, d.Ingest(context.Background(), []string{"ext/table"}))
+	writeBatches(300)
+
+	// A batch of at least largeBatchThreshold bytes becomes a flushable batch.
+	b = d.NewBatch()
+	require.NoError(t, b.Set(key(250), bytes.Repeat([]byte{'l'}, int(d.largeBatchThreshold)), nil))
+	require.NoError(t, b.DeleteRange(key(100), key(120), nil))
+	require.NoError(t, b.Commit(nil))
+	writeBatches(300)
+
+	d.mu.Lock()
+	var memTables, ingests, largeBatches int
+	for _, entry := range d.mu.mem.queue {
+		switch entry.flushable.(type) {
+		case *memTable:
+			memTables++
+		case *ingestedFlushable:
+			ingests++
+		case *flushableBatch:
+			largeBatches++
+		}
+	}
+	d.mu.compact.flushing = false
+	d.mu.Unlock()
+	require.GreaterOrEqual(t, memTables, 4)
+	require.Equal(t, 1, ingests)
+	require.Equal(t, 1, largeBatches)
+	want := readAll()
+	require.NoError(t, d.Close())
+
+	d, err = Open("", makeOpts(readOnly))
+	require.NoError(t, err)
+	defer func() { require.NoError(t, d.Close()) }()
+
+	// In read-only mode the replayed memtables are still queued. Otherwise
+	// Open flushed them, and only the new mutable memtable is left.
+	// The checks run after d.mu is released: a failed check exits the test,
+	// and the deferred Close needs d.mu.
+	var queued []*memTable
+	d.mu.Lock()
+	for _, entry := range d.mu.mem.queue {
+		if m, ok := entry.flushable.(*memTable); ok {
+			queued = append(queued, m)
+		}
+	}
+	d.mu.Unlock()
+	var builtMemTables, builtFragments int
+	for _, m := range queued {
+		require.True(t, m.incrementalRangeDels)
+		require.False(t, m.deferRangeDels)
+		requireRangeDelVersionValid(t, m)
+		ref := referenceRangeDelFragments(&m.rangeDelSkl, m.cmp, m.formatKey)
+		spans := m.rangeDelSpans()
+		requireRangeDelSpansEqual(t, m.cmp, ref, spans, "seed %d", seed)
+		// The build leaves no spare capacity in the spans' keys.
+		for _, s := range spans {
+			require.Equal(t, len(s.Keys), cap(s.Keys), "seed %d, span %s", seed, s)
+		}
+		if len(ref) > 0 {
+			builtMemTables++
+			builtFragments += len(ref)
+		}
+	}
+
+	metrics := d.Metrics().MemTableRangeDelCache
+	builds, _ := histogramSamples(t, metrics.RebuildDuration)
+	n, tombstones := histogramSamples(t, metrics.RebuildTombstones)
+	require.Equal(t, builds, n)
+	require.Equal(t, float64(memTableRangeDels), tombstones)
+	n, fragments := histogramSamples(t, metrics.RebuildFragments)
+	require.Equal(t, builds, n)
+	// Every WAL but the flushable ingest's holds range deletions.
+	require.GreaterOrEqual(t, builds, uint64(3))
+	if readOnly {
+		require.Equal(t, uint64(builtMemTables), builds)
+		require.Equal(t, float64(builtFragments), fragments)
+	} else {
+		require.Zero(t, builtMemTables)
+	}
+	n, _ = histogramSamples(t, metrics.ConcurrentRebuilds)
+	require.Zero(t, n)
+	n, _ = histogramSamples(t, metrics.ReaderWait)
+	require.Zero(t, n)
+	n, _ = histogramSamples(t, metrics.SpliceDuration)
+	require.Zero(t, n)
+	n, _ = histogramSamples(t, metrics.SpliceFragmentsTouched)
+	require.Zero(t, n)
+	n, _ = histogramSamples(t, metrics.SpliceVersionFragments)
+	require.Zero(t, n)
+	require.Zero(t, metrics.Invalidations)
+
+	require.Equal(t, want, readAll())
+
+	if !readOnly {
+		// The mutable memtable that Open created splices range deletions.
+		require.NoError(t, d.DeleteRange(key(0), key(1), nil))
+		n, _ = histogramSamples(t, d.Metrics().MemTableRangeDelCache.SpliceDuration)
+		require.Equal(t, uint64(1), n)
+	}
+}
+
+// TestReplayRangeDelFragmentsCorruptWAL replays a WAL that is corrupt partway
+// through, so that replay applies batches with range deletions to a memtable
+// that defers building its fragments and then fails. Open must return the
+// corruption, and nothing on its error path may read the memtable's fragments.
+func TestReplayRangeDelFragmentsCorruptWAL(t *testing.T) {
+	defer leaktest.AfterTest(t)()
+	for _, readOnly := range []bool{false, true} {
+		t.Run(fmt.Sprintf("read-only=%t", readOnly), func(t *testing.T) {
+			mem := vfs.NewMem()
+			makeOpts := func(readOnly bool) *Options {
+				opts := &Options{
+					FS:                 mem,
+					FormatMajorVersion: internalFormatNewest,
+					Logger:             testutils.Logger{T: t},
+					ReadOnly:           readOnly,
+				}
+				opts.Experimental.IncrementalRangeDelFragments = func() bool { return true }
+				return opts
+			}
+			d, err := Open("", makeOpts(false))
+			require.NoError(t, err)
+			require.NoError(t, d.Flush())
+			key := func(i int) []byte { return fmt.Appendf(nil, "key-%02d", i) }
+			value := bytes.Repeat([]byte{'v'}, 4096)
+			for i := range 32 {
+				b := d.NewBatch()
+				require.NoError(t, b.DeleteRange(key(i), key(i+2), nil))
+				require.NoError(t, b.Set(key(i), value, nil))
+				require.NoError(t, b.Commit(Sync))
+			}
+			require.NoError(t, d.Close())
+
+			logs, err := mem.List("")
+			require.NoError(t, err)
+			logs = slices.DeleteFunc(logs, func(s string) bool { return filepath.Ext(s) != ".log" })
+			slices.Sort(logs)
+			f, err := mem.OpenReadWrite(logs[len(logs)-1], vfs.WriteCategoryUnspecified)
+			require.NoError(t, err)
+			stat, err := f.Stat()
+			require.NoError(t, err)
+			// Zero four bytes in the middle of the WAL, so that replay applies the
+			// batches before them and finds valid chunks after them.
+			_, err = f.WriteAt([]byte{0, 0, 0, 0}, stat.Size()/2)
+			require.NoError(t, err)
+			require.NoError(t, f.Close())
+
+			_, err = Open("", makeOpts(readOnly))
+			require.True(t, errors.Is(err, ErrCorruption), "%+v", err)
+		})
+	}
+}

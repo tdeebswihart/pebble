@@ -92,9 +92,15 @@ type memTable struct {
 	// as of init. If it's set, tombstones holds the fragmented range deletions,
 	// and otherwise tombstoneCache does.
 	incrementalRangeDels bool
-	tombstones           rangeDelFragments
-	tombstoneCache       keySpanCache
-	rangeKeys            keySpanCache
+	// deferRangeDels is set while WAL replay applies batches to the memtable.
+	// If incrementalRangeDels is also set, apply adds range deletions to
+	// rangeDelSkl without splicing them into tombstones, and
+	// buildDeferredRangeDels builds the fragments once replay is done. Nothing
+	// reads the memtable in between.
+	deferRangeDels bool
+	tombstones     rangeDelFragments
+	tombstoneCache keySpanCache
+	rangeKeys      keySpanCache
 	// The current logSeqNum at the time the memtable was created. This is
 	// guaranteed to be less than or equal to any seqnum stored in the memtable.
 	logSeqNum                    base.SeqNum
@@ -245,13 +251,17 @@ func (m *memTable) apply(batch *Batch, seqNum base.SeqNum) error {
 	// deletions as they're added to rangeDelSkl. They're spliced into
 	// m.tombstones before apply returns, even if it returns an error, so that
 	// the fragments hold every range deletion in rangeDelSkl once the applies
-	// that added them have returned.
+	// that added them have returned. If deferRangeDels is also set, the range
+	// deletions are only counted.
 	var rangeDelsBuf [4]rangeDelTombstone
 	rangeDels := rangeDelsBuf[:0]
+	var deferredRangeDels int
 	if m.incrementalRangeDels {
 		defer func() {
 			if len(rangeDels) > 0 {
 				m.tombstones.add(rangeDels)
+			} else if deferredRangeDels > 0 {
+				m.tombstones.addDeferred(deferredRangeDels)
 			}
 		}()
 	}
@@ -267,7 +277,15 @@ func (m *memTable) apply(batch *Batch, seqNum base.SeqNum) error {
 		ikey := base.MakeInternalKey(ukey, seqNum, kind)
 		switch kind {
 		case InternalKeyKindRangeDelete:
-			if m.incrementalRangeDels {
+			switch {
+			case !m.incrementalRangeDels:
+				err = m.rangeDelSkl.Add(ikey, value)
+				tombstoneCount++
+			case m.deferRangeDels:
+				if err = m.rangeDelSkl.Add(ikey, value); err == nil {
+					deferredRangeDels++
+				}
+			default:
 				// The batch's buffer may be reused once the commit completes, so
 				// the fragments' bounds must point at the copies in the arena.
 				var start, end []byte
@@ -276,9 +294,6 @@ func (m *memTable) apply(batch *Batch, seqNum base.SeqNum) error {
 					rangeDels = append(rangeDels,
 						rangeDelTombstone{start: start, end: end, trailer: ikey.Trailer})
 				}
-			} else {
-				err = m.rangeDelSkl.Add(ikey, value)
-				tombstoneCount++
 			}
 		case InternalKeyKindRangeKeySet, InternalKeyKindRangeKeyUnset, InternalKeyKindRangeKeyDelete:
 			err = m.rangeKeySkl.Add(ikey, value)
@@ -309,6 +324,26 @@ func (m *memTable) apply(batch *Batch, seqNum base.SeqNum) error {
 	return nil
 }
 
+// deferRangeDelFragments makes apply stop splicing range deletions into the
+// memtable's fragments, if it does, until buildDeferredRangeDels. WAL replay
+// calls it on the memtables it applies batches to: nothing reads them until
+// replay is done, so building the fragments once afterwards costs less than a
+// splice per batch.
+func (m *memTable) deferRangeDelFragments() {
+	m.deferRangeDels = m.incrementalRangeDels
+}
+
+// buildDeferredRangeDels builds the fragments of the range deletions that apply
+// added while deferRangeDelFragments was in effect, and makes apply splice
+// again. It must not run concurrently with apply or a reader.
+func (m *memTable) buildDeferredRangeDels() {
+	if !m.deferRangeDels {
+		return
+	}
+	m.tombstones.build()
+	m.deferRangeDels = false
+}
+
 // newIter is part of the flushable interface. It returns an iterator that is
 // unpositioned (Iterator.Valid() will return false). The iterator can be
 // positioned via a call to SeekGE, SeekLT, First or Last.
@@ -329,6 +364,9 @@ func (m *memTable) newRangeDelIter(*IterOptions) keyspan.FragmentIterator {
 			return nil
 		}
 		return keyspan.NewIter(m.cmp, tombstones)
+	}
+	if invariants.Enabled && m.deferRangeDels {
+		panic(errors.AssertionFailedf("pebble: memtable range deletions read before they were built"))
 	}
 	v := m.tombstones.version.Load()
 	if v == nil {
@@ -734,6 +772,50 @@ func (f *rangeDelFragments) add(tombstones []rangeDelTombstone) {
 	}
 	f.mu.Unlock()
 	f.stats.batchSpliced(elapsed, n)
+}
+
+// addDeferred records that the caller added n range deletions to skl without
+// splicing them, for build to include.
+func (f *rangeDelFragments) addDeferred(n int) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.mu.count += n
+}
+
+// build builds the fragments of every range deletion in skl in a single pass,
+// as a rebuild of keySpanFrags does, and publishes them in place of any it
+// already holds. It must not run concurrently with add or a reader.
+func (f *rangeDelFragments) build() {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.mu.count == 0 {
+		return
+	}
+	var start crtime.Mono
+	if f.stats != nil {
+		start = crtime.NowMono()
+	}
+	frags := keySpanFrags{count: uint32(f.mu.count)}
+	frags.populateBypassingDisjoint(f.skl, f.cmp, f.formatKey, rangeDelConstructSpan)
+	spans := frags.spans
+	if len(spans) > 0 {
+		// The Fragmenter's appends leave spare capacity in the Keys it emits.
+		for i := range spans {
+			spans[i].Keys = slices.Clip(spans[i].Keys)
+		}
+		f.version.Store(&rangeDelVersion{
+			chunks: chunkRangeDelSpans(spans, f.chunkSize),
+			n:      len(spans),
+		})
+	}
+	f.stats.built(start, f.mu.count, len(spans))
+	if invariants.Enabled {
+		v := f.version.Load()
+		if err := checkRangeDelVersion(f.cmp, v, f.chunkSize); err != nil {
+			panic(err)
+		}
+		checkRangeDelFragments(f.skl, f.cmp, f.formatKey, v, f.mu.count)
+	}
 }
 
 // spliceRangeDelChunks splices the non-empty range deletion t into the chunks
@@ -1273,6 +1355,19 @@ func (s *keySpanCacheStats) rebuildStarted(tombstones uint32) {
 	}
 	s.concurrentRebuilds.Observe(float64(s.rebuildsInFlight.Add(1)))
 	s.rebuildTombstones.Observe(float64(tombstones))
+}
+
+// built records that rangeDelFragments.build, which began at start, built
+// numFragments fragments from the given number of tombstones. It records the
+// rebuild histograms other than ConcurrentRebuilds: nothing runs concurrently
+// with a build.
+func (s *keySpanCacheStats) built(start crtime.Mono, tombstones, numFragments int) {
+	if s == nil {
+		return
+	}
+	s.rebuildDuration.Observe(float64(start.Elapsed()))
+	s.rebuildTombstones.Observe(float64(tombstones))
+	s.rebuildFragments.Observe(float64(numFragments))
 }
 
 // rebuildFinished records the end of a rebuild that began at start and produced
