@@ -6,8 +6,10 @@ package pebble
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -21,6 +23,7 @@ import (
 	"github.com/cockroachdb/pebble/internal/manual"
 	"github.com/cockroachdb/pebble/internal/rangedel"
 	"github.com/cockroachdb/pebble/internal/rangekey"
+	"github.com/cockroachdb/pebble/internal/treesteps"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -153,6 +156,7 @@ func (m *memTable) init(opts memTableOptions) {
 		formatKey: m.formatKey,
 		skl:       &m.rangeDelSkl,
 		stats:     opts.rangeDelCacheStats,
+		chunkSize: rangeDelChunkSize,
 	}
 	m.rangeKeys = keySpanCache{
 		cmp:           m.cmp,
@@ -290,11 +294,14 @@ func (m *memTable) newFlushIter(o *IterOptions) internalIterator {
 
 // newRangeDelIter is part of the flushable interface.
 func (m *memTable) newRangeDelIter(*IterOptions) keyspan.FragmentIterator {
-	tombstones := m.tombstones.get()
-	if tombstones == nil {
+	v := m.tombstones.version.Load()
+	if v == nil {
 		return nil
 	}
-	return keyspan.NewIter(m.cmp, tombstones)
+	if len(v.chunks) == 1 {
+		return keyspan.NewIter(m.cmp, v.chunks[0].spans)
+	}
+	return &rangeDelChunkIter{cmp: m.cmp, chunks: v.chunks, ci: -1}
 }
 
 // newRangeKeyIter is part of the flushable interface.
@@ -579,14 +586,14 @@ type rangeDelTombstone struct {
 // them up to date as batches are applied rather than rebuilding them on a read.
 //
 // The fragments are an immutable rangeDelVersion behind an atomic pointer. A
-// reader loads the pointer and iterates over the version's spans. memTable.apply
-// adds a batch's range deletions to rangeDelSkl, then, holding mu, splices each
-// of them into a new version, which it publishes before it returns. The commit
-// pipeline publishes a batch's sequence numbers only after apply returns, so a
-// reader that can see a batch loads a version that holds the batch's range
-// deletions. Writers serialize on mu, so each version builds on the one before,
-// even though batches may reach mu out of sequence number order. Readers never
-// take mu.
+// reader loads the pointer and iterates over the version's chunks.
+// memTable.apply adds a batch's range deletions to rangeDelSkl, then, holding
+// mu, splices each of them into a new version, which it publishes before it
+// returns. The commit pipeline publishes a batch's sequence numbers only after
+// apply returns, so a reader that can see a batch loads a version that holds
+// the batch's range deletions. Writers serialize on mu, so each version builds
+// on the one before, even though batches may reach mu out of sequence number
+// order. Readers never take mu.
 type rangeDelFragments struct {
 	cmp       Compare
 	formatKey base.FormatKey
@@ -596,6 +603,9 @@ type rangeDelFragments struct {
 	// stats, if non-nil, records the splices. It is owned by the DB and shared
 	// by all its memtables.
 	stats *keySpanCacheStats
+	// chunkSize is the number of fragments a chunk holds after a split (see
+	// rangeDelVersion). It's rangeDelChunkSize, except in tests.
+	chunkSize int
 	// version holds the current fragments. It's nil until the first non-empty
 	// range deletion is spliced in.
 	version atomic.Pointer[rangeDelVersion]
@@ -607,23 +617,32 @@ type rangeDelFragments struct {
 	}
 }
 
+// rangeDelChunkSize is the number of fragments that a rangeDelVersion's chunks
+// hold after a split.
+const rangeDelChunkSize = 128
+
 // A rangeDelVersion is a set of fragmented range deletions: spans that are
 // sorted by start key and don't overlap, each holding keys sorted by trailer
-// descending. Nothing in a published version is ever modified, since readers
-// may hold pointers to its spans (see keyspan.Iter). A later version shares the
-// Keys slices of the spans it copies unchanged. Neither spans nor any span's
+// descending. The spans are split into chunks, in order. Each chunk holds 1 to
+// 2*chunkSize spans, so that a splice copies the chunk index and the chunks
+// that the range deletion overlaps rather than every span. A version with at
+// most 2*chunkSize spans has a single chunk.
+//
+// Nothing in a published version is ever modified, since readers may hold
+// pointers to its spans (see keyspan.Iter). A later version shares the chunks
+// that its splices didn't touch, and the Keys slices of the spans it copies
+// unchanged. Neither the chunk index, nor any chunk's spans, nor any span's
 // Keys has spare capacity, so an append by a reader can't write into memory
-// that another span shares.
+// that another version shares.
 type rangeDelVersion struct {
-	spans []keyspan.Span
+	chunks []*rangeDelChunk
+	// n is the number of spans in all chunks.
+	n int
 }
 
-// get returns the current fragments, or nil if there are none.
-func (f *rangeDelFragments) get() []keyspan.Span {
-	if v := f.version.Load(); v != nil {
-		return v.spans
-	}
-	return nil
+// A rangeDelChunk holds a run of a rangeDelVersion's spans.
+type rangeDelChunk struct {
+	spans []keyspan.Span
 }
 
 // add splices a batch's range deletions, which the caller has added to skl,
@@ -635,22 +654,32 @@ func (f *rangeDelFragments) add(tombstones []rangeDelTombstone) {
 	if f.stats != nil {
 		start = crtime.NowMono()
 	}
-	v := f.version.Load()
-	var spans []keyspan.Span
-	if v != nil {
-		spans = v.spans
+	var chunks []*rangeDelChunk
+	var n int
+	if v := f.version.Load(); v != nil {
+		chunks, n = v.chunks, v.n
 	}
-	changed := false
+	// copied is set once chunks is a copy of the published chunk index, which
+	// later splices in the batch may then modify.
+	copied := false
 	for i := range tombstones {
-		var touched int
-		spans, touched = spliceRangeDel(f.cmp, spans, tombstones[i])
-		if touched > 0 {
-			changed = true
-			f.stats.tombstoneSpliced(touched)
+		t := tombstones[i]
+		if f.cmp(t.start, t.end) >= 0 {
+			// A keyspan.Fragmenter drops an empty or inverted span too.
+			continue
 		}
+		lo, hi, repl, added, touched := spliceRangeDelChunks(f.cmp, f.chunkSize, chunks, t)
+		if copied {
+			chunks = slices.Replace(chunks, lo, hi, repl...)
+		} else {
+			chunks = slices.Concat(chunks[:lo], repl, chunks[hi:])
+			copied = true
+		}
+		n += added
+		f.stats.tombstoneSpliced(touched)
 	}
-	if changed {
-		f.version.Store(&rangeDelVersion{spans: spans})
+	if copied {
+		f.version.Store(&rangeDelVersion{chunks: slices.Clip(chunks), n: n})
 	}
 	f.mu.count += len(tombstones)
 	var elapsed time.Duration
@@ -658,10 +687,99 @@ func (f *rangeDelFragments) add(tombstones []rangeDelTombstone) {
 		elapsed = start.Elapsed()
 	}
 	if invariants.Enabled {
-		checkRangeDelFragments(f.skl, f.cmp, f.formatKey, spans, f.mu.count)
+		v := f.version.Load()
+		if err := checkRangeDelVersion(f.cmp, v, f.chunkSize); err != nil {
+			panic(err)
+		}
+		checkRangeDelFragments(f.skl, f.cmp, f.formatKey, v, f.mu.count)
 	}
 	f.mu.Unlock()
-	f.stats.batchSpliced(elapsed, len(spans))
+	f.stats.batchSpliced(elapsed, n)
+}
+
+// spliceRangeDelChunks splices the non-empty range deletion t into the chunks
+// of a rangeDelVersion, which it doesn't modify. It returns the chunks that
+// replace chunks[lo:hi], the number of spans that the splice added, and the
+// number of spans it wrote, as spliceRangeDel counts them.
+//
+// Only the chunks in [lo, hi) overlap t: every chunk before lo ends at or
+// before t.start, and every chunk from hi on starts at or after t.end. So
+// splicing t into the spans of those chunks alone gives the same spans as
+// splicing it into every span of the version. If t overlaps no chunk, [lo, hi)
+// is the chunk that follows t, or the last chunk if t follows every chunk.
+func spliceRangeDelChunks(
+	cmp Compare, chunkSize int, chunks []*rangeDelChunk, t rangeDelTombstone,
+) (lo, hi int, repl []*rangeDelChunk, added, touched int) {
+	if len(chunks) == 0 {
+		var spans []keyspan.Span
+		spans, touched = spliceRangeDel(cmp, nil, t)
+		return 0, 0, []*rangeDelChunk{{spans: spans}}, len(spans), touched
+	}
+	// lo is the first chunk whose last span ends after t.start.
+	lo, hi = 0, len(chunks)
+	for lo < hi {
+		h := int(uint(lo+hi) >> 1)
+		spans := chunks[h].spans
+		if cmp(spans[len(spans)-1].End, t.start) <= 0 {
+			lo = h + 1
+		} else {
+			hi = h
+		}
+	}
+	// hi is the first chunk from lo on whose first span starts at or after
+	// t.end. The chunk before lo ends at or before t.start, so it starts before
+	// t.end, and hi can't be less than lo.
+	hi = len(chunks)
+	for j := lo; j < hi; {
+		h := int(uint(j+hi) >> 1)
+		if cmp(chunks[h].spans[0].Start, t.end) < 0 {
+			j = h + 1
+		} else {
+			hi = h
+		}
+	}
+	if lo == hi {
+		// t lies in a gap between chunks, or before or after all of them.
+		if lo == len(chunks) {
+			lo--
+		}
+		hi = lo + 1
+	}
+
+	var in []keyspan.Span
+	if hi-lo == 1 {
+		in = chunks[lo].spans
+	} else {
+		var numSpans int
+		for _, c := range chunks[lo:hi] {
+			numSpans += len(c.spans)
+		}
+		in = make([]keyspan.Span, 0, numSpans)
+		for _, c := range chunks[lo:hi] {
+			in = append(in, c.spans...)
+		}
+	}
+	out, touched := spliceRangeDel(cmp, in, t)
+	return lo, hi, chunkRangeDelSpans(out, chunkSize), len(out) - len(in), touched
+}
+
+// chunkRangeDelSpans returns spans as chunks for a rangeDelVersion. Up to
+// 2*chunkSize spans make a single chunk that holds spans itself, with its
+// capacity clipped. More are split into pieces of chunkSize to 2*chunkSize-1
+// spans, and each piece is copied into an array of its own, so that no chunk
+// keeps a larger array alive or shares one with another chunk.
+func chunkRangeDelSpans(spans []keyspan.Span, chunkSize int) []*rangeDelChunk {
+	if len(spans) <= 2*chunkSize {
+		return []*rangeDelChunk{{spans: slices.Clip(spans)}}
+	}
+	chunks := make([]*rangeDelChunk, len(spans)/chunkSize)
+	for p := range chunks {
+		piece := spans[len(spans)*p/len(chunks) : len(spans)*(p+1)/len(chunks)]
+		c := &rangeDelChunk{spans: make([]keyspan.Span, len(piece))}
+		copy(c.spans, piece)
+		chunks[p] = c
+	}
+	return chunks
 }
 
 // spliceRangeDel returns the fragments of spans and the range deletion t
@@ -770,22 +888,70 @@ func insertRangeDelKey(dst, keys []keyspan.Key, k keyspan.Key) {
 	copy(dst[p+1:], keys[p:])
 }
 
-// maxCheckedRangeDels is the largest number of range deletions a memtable can
-// hold for invariants builds to check its fragments against a full rebuild
-// after every splice.
-const maxCheckedRangeDels = 64
+// spans returns the version's spans in a single slice, or nil if v is nil.
+func (v *rangeDelVersion) spans() []keyspan.Span {
+	if v == nil {
+		return nil
+	}
+	spans := make([]keyspan.Span, 0, v.n)
+	for _, c := range v.chunks {
+		spans = append(spans, c.spans...)
+	}
+	return spans
+}
 
-// checkRangeDelFragments panics if spans differ from the fragments of the
-// range deletions in skl. n is the number of range deletions spliced into
-// spans. The check is skipped if n exceeds maxCheckedRangeDels, or if skl
-// doesn't hold exactly n range deletions, as happens while other applies have
-// added range deletions to skl that they haven't spliced yet. Every range
-// deletion spliced into spans was added to skl before this is called, so a skl
-// iteration that finds exactly n of them found those.
+// checkRangeDelVersion returns an error if v isn't structured as a
+// rangeDelVersion must be for the given chunk size: its chunks must hold 1 to
+// 2*chunkSize spans, the last span of each must end at or before the first
+// span of the next starts, n must count the spans, and neither the chunk index
+// nor any chunk's spans may have spare capacity. A nil version is valid.
+func checkRangeDelVersion(cmp Compare, v *rangeDelVersion, chunkSize int) error {
+	if v == nil {
+		return nil
+	}
+	if len(v.chunks) == 0 || cap(v.chunks) != len(v.chunks) {
+		return errors.AssertionFailedf("pebble: range deletion version has %d chunks and capacity %d",
+			errors.Safe(len(v.chunks)), errors.Safe(cap(v.chunks)))
+	}
+	n := 0
+	for i, c := range v.chunks {
+		if len(c.spans) == 0 || len(c.spans) > 2*chunkSize || cap(c.spans) != len(c.spans) {
+			return errors.AssertionFailedf(
+				"pebble: range deletion chunk %d has %d spans and capacity %d (chunk size %d)",
+				errors.Safe(i), errors.Safe(len(c.spans)), errors.Safe(cap(c.spans)), errors.Safe(chunkSize))
+		}
+		if i > 0 {
+			prev := v.chunks[i-1].spans
+			if cmp(prev[len(prev)-1].End, c.spans[0].Start) > 0 {
+				return errors.AssertionFailedf("pebble: range deletion chunk %d starts at %s, before %s",
+					errors.Safe(i), c.spans[0].Start, prev[len(prev)-1].End)
+			}
+		}
+		n += len(c.spans)
+	}
+	if n != v.n {
+		return errors.AssertionFailedf("pebble: range deletion version counts %d spans but holds %d",
+			errors.Safe(v.n), errors.Safe(n))
+	}
+	return nil
+}
+
+// maxCheckedRangeDelFragments is the largest number of fragments a memtable
+// can hold for invariants builds to check them against a full rebuild after
+// every splice.
+const maxCheckedRangeDelFragments = 4096
+
+// checkRangeDelFragments panics if the spans of v differ from the fragments of
+// the range deletions in skl. n is the number of range deletions spliced into
+// v. The check is skipped if v holds more than maxCheckedRangeDelFragments
+// spans, or if skl doesn't hold exactly n range deletions, as happens while
+// other applies have added range deletions to skl that they haven't spliced
+// yet. Every range deletion spliced into v was added to skl before this is
+// called, so a skl iteration that finds exactly n of them found those.
 func checkRangeDelFragments(
-	skl *arenaskl.Skiplist, cmp Compare, formatKey base.FormatKey, spans []keyspan.Span, n int,
+	skl *arenaskl.Skiplist, cmp Compare, formatKey base.FormatKey, v *rangeDelVersion, n int,
 ) {
-	if n > maxCheckedRangeDels {
+	if v != nil && v.n > maxCheckedRangeDelFragments {
 		return
 	}
 	var want []keyspan.Span
@@ -805,7 +971,7 @@ func checkRangeDelFragments(
 		return
 	}
 	frag.Finish()
-	if !rangeDelSpansEqual(cmp, want, spans) {
+	if spans := v.spans(); !rangeDelSpansEqual(cmp, want, spans) {
 		panic(errors.AssertionFailedf(
 			"pebble: memtable range deletion fragments differ from a rebuild\nwant: %s\ngot:  %s",
 			want, spans))
@@ -832,6 +998,152 @@ func rangeDelSpansEqual(cmp Compare, a, b []keyspan.Span) bool {
 		}
 	}
 	return true
+}
+
+// rangeDelChunkIter is a keyspan.FragmentIterator over the spans of a
+// rangeDelVersion with more than one chunk. It behaves as a keyspan.Iter over
+// the version's spans in a single slice would, and the spans it returns point
+// into the chunks, so they stay valid for as long as the version is reachable.
+type rangeDelChunkIter struct {
+	cmp    Compare
+	chunks []*rangeDelChunk
+	// ci is the current chunk, and i the current span within it. ci is -1
+	// before the first span and len(chunks) after the last, where i is unused.
+	ci, i int
+}
+
+var _ keyspan.FragmentIterator = (*rangeDelChunkIter)(nil)
+
+// SeekGE implements keyspan.FragmentIterator.
+func (it *rangeDelChunkIter) SeekGE(key []byte) (*keyspan.Span, error) {
+	// The span sought, the first that ends after key, is in the first chunk
+	// whose last span ends after key.
+	ci, hi := 0, len(it.chunks)
+	for ci < hi {
+		h := int(uint(ci+hi) >> 1)
+		spans := it.chunks[h].spans
+		if it.cmp(key, spans[len(spans)-1].End) >= 0 {
+			ci = h + 1
+		} else {
+			hi = h
+		}
+	}
+	it.ci = ci
+	if ci == len(it.chunks) {
+		return nil, nil
+	}
+	spans := it.chunks[ci].spans
+	i, hi := 0, len(spans)-1
+	for i < hi {
+		h := int(uint(i+hi) >> 1)
+		if it.cmp(key, spans[h].End) >= 0 {
+			i = h + 1
+		} else {
+			hi = h
+		}
+	}
+	it.i = i
+	return &spans[i], nil
+}
+
+// SeekLT implements keyspan.FragmentIterator.
+func (it *rangeDelChunkIter) SeekLT(key []byte) (*keyspan.Span, error) {
+	// The span sought, the last that starts before key, is in the last chunk
+	// whose first span starts before key.
+	ci, hi := 0, len(it.chunks)
+	for ci < hi {
+		h := int(uint(ci+hi) >> 1)
+		if it.cmp(key, it.chunks[h].spans[0].Start) > 0 {
+			ci = h + 1
+		} else {
+			hi = h
+		}
+	}
+	ci--
+	it.ci = ci
+	if ci < 0 {
+		return nil, nil
+	}
+	spans := it.chunks[ci].spans
+	i, hi := 1, len(spans)
+	for i < hi {
+		h := int(uint(i+hi) >> 1)
+		if it.cmp(key, spans[h].Start) > 0 {
+			i = h + 1
+		} else {
+			hi = h
+		}
+	}
+	it.i = i - 1
+	return &spans[it.i], nil
+}
+
+// First implements keyspan.FragmentIterator.
+func (it *rangeDelChunkIter) First() (*keyspan.Span, error) {
+	it.ci, it.i = 0, 0
+	return &it.chunks[0].spans[0], nil
+}
+
+// Last implements keyspan.FragmentIterator.
+func (it *rangeDelChunkIter) Last() (*keyspan.Span, error) {
+	it.ci = len(it.chunks) - 1
+	it.i = len(it.chunks[it.ci].spans) - 1
+	return &it.chunks[it.ci].spans[it.i], nil
+}
+
+// Next implements keyspan.FragmentIterator.
+func (it *rangeDelChunkIter) Next() (*keyspan.Span, error) {
+	switch {
+	case it.ci >= len(it.chunks):
+		return nil, nil
+	case it.ci < 0:
+		it.ci, it.i = 0, 0
+	case it.i+1 < len(it.chunks[it.ci].spans):
+		it.i++
+	default:
+		it.ci, it.i = it.ci+1, 0
+		if it.ci == len(it.chunks) {
+			return nil, nil
+		}
+	}
+	return &it.chunks[it.ci].spans[it.i], nil
+}
+
+// Prev implements keyspan.FragmentIterator.
+func (it *rangeDelChunkIter) Prev() (*keyspan.Span, error) {
+	switch {
+	case it.ci < 0:
+		return nil, nil
+	case it.ci >= len(it.chunks):
+		return it.Last()
+	case it.i > 0:
+		it.i--
+	default:
+		it.ci--
+		if it.ci < 0 {
+			return nil, nil
+		}
+		it.i = len(it.chunks[it.ci].spans) - 1
+	}
+	return &it.chunks[it.ci].spans[it.i], nil
+}
+
+// SetContext implements keyspan.FragmentIterator.
+func (it *rangeDelChunkIter) SetContext(ctx context.Context) {}
+
+// Close implements keyspan.FragmentIterator.
+func (it *rangeDelChunkIter) Close() {}
+
+// WrapChildren implements keyspan.FragmentIterator.
+func (it *rangeDelChunkIter) WrapChildren(wrap keyspan.WrapFn) {}
+
+// TreeStepsNode implements keyspan.FragmentIterator.
+func (it *rangeDelChunkIter) TreeStepsNode() treesteps.NodeInfo {
+	return treesteps.NodeInfof(it, "%T(%p)", it, it)
+}
+
+func (it *rangeDelChunkIter) String() string {
+	return "rangeDelChunkIter"
 }
 
 // keySpanCacheStats records how often keySpanCaches are invalidated and

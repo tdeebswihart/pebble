@@ -606,13 +606,14 @@ type MemTableRangeDelCacheMetrics struct {
 	// SpliceFragmentsTouched records, for each non-empty range deletion spliced
 	// into the cache, the number of fragments the splice wrote rather than
 	// copied from the previous version: the fragments it covers, gaps between
-	// them, and the parts of a fragment it splits. The remaining fragments cost
-	// a copy each.
+	// them, and the parts of a fragment it splits. The other fragments of the
+	// chunks it overlaps cost a copy each.
 	SpliceFragmentsTouched prometheus.Histogram
 	// SpliceVersionFragments records, for each applied batch that contains a
 	// range deletion, the number of fragments in the version of the cache that
-	// the batch's splices produced. A splice copies every fragment, so this is
-	// what the splice's cost grows with.
+	// the batch's splices produced. The cache holds its fragments in chunks of
+	// about 128, and a splice copies the chunk index, so part of a splice's cost
+	// grows with this count divided by the chunk size.
 	SpliceVersionFragments prometheus.Histogram
 	// Invalidations is the cumulative number of times a memtable's cache of
 	// fragmented range deletions was replaced by a new version, which is once
