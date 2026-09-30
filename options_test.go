@@ -501,6 +501,7 @@ func TestOptionsParse(t *testing.T) {
 			opts.Experimental.TombstoneDenseCompactionThreshold = func() float64 { return 0.2 }
 			opts.Experimental.FileCacheShards = 500
 			opts.Experimental.SecondaryCacheSizeBytes = 1024
+			opts.Experimental.IncrementalRangeDelFragments = func() bool { return true }
 			opts.Experimental.ValueSeparationPolicy = func() ValueSeparationPolicy {
 				return ValueSeparationPolicy{
 					Enabled:               true,
@@ -519,6 +520,8 @@ func TestOptionsParse(t *testing.T) {
 				t.Fatalf("expected\n%s\nbut found\n%s", str, parsedStr)
 			}
 			require.Nil(t, parsedOptions.Cache)
+			require.Contains(t, str, "incremental_range_del_fragments=true")
+			require.True(t, parsedOptions.Experimental.IncrementalRangeDelFragments())
 		})
 	}
 }

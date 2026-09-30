@@ -936,6 +936,9 @@ func RandomOptions(rng *rand.Rand, kf KeyFormat, cfg RandomOptionsCfg) *TestOpti
 		return testOpts.useDeleteOnlyCompactionExcises
 	}
 	testOpts.disableDownloads = rng.IntN(2) == 0
+	if rng.IntN(2) == 0 {
+		opts.Experimental.IncrementalRangeDelFragments = func() bool { return true }
+	}
 	testOpts.Opts.EnsureDefaults()
 	return testOpts
 }

@@ -579,30 +579,42 @@ func TestMetrics(t *testing.T) {
 // a DeleteRange followed by a Get is recorded.
 func TestMetricsMemTableRangeDelCache(t *testing.T) {
 	defer leaktest.AfterTest(t)()
-	d, err := Open("", &Options{FS: vfs.NewMem(), Logger: testutils.Logger{T: t}})
-	require.NoError(t, err)
-	defer func() { require.NoError(t, d.Close()) }()
+	for _, incremental := range []bool{false, true} {
+		t.Run(fmt.Sprintf("incremental=%t", incremental), func(t *testing.T) {
+			opts := &Options{FS: vfs.NewMem(), Logger: testutils.Logger{T: t}}
+			opts.Experimental.IncrementalRangeDelFragments = func() bool { return incremental }
+			d, err := Open("", opts)
+			require.NoError(t, err)
+			defer func() { require.NoError(t, d.Close()) }()
 
-	// readRangeDelCacheSamples requires every histogram to be non-nil.
-	m := d.Metrics().MemTableRangeDelCache
-	require.Equal(t, rangeDelCacheSamples{}, readRangeDelCacheSamples(t, m))
+			// readRangeDelCacheSamples requires every histogram to be non-nil.
+			m := d.Metrics().MemTableRangeDelCache
+			require.Equal(t, rangeDelCacheSamples{}, readRangeDelCacheSamples(t, m))
 
-	require.NoError(t, d.Set([]byte("b"), []byte("v"), nil))
-	require.NoError(t, d.DeleteRange([]byte("a"), []byte("c"), nil))
-	_, _, err = d.Get([]byte("b"))
-	require.ErrorIs(t, err, ErrNotFound)
+			require.NoError(t, d.Set([]byte("b"), []byte("v"), nil))
+			require.NoError(t, d.DeleteRange([]byte("a"), []byte("c"), nil))
+			_, _, err = d.Get([]byte("b"))
+			require.ErrorIs(t, err, ErrNotFound)
 
-	// The DeleteRange was spliced into the cache as it was applied, so the Get
-	// had nothing to rebuild.
-	want := rangeDelCacheSamples{
-		invalidations: 1, splices: 1, versionFragmentsSum: 1, touched: 1, touchedSum: 1,
+			// Without incremental fragments, the Get rebuilt the cache. With
+			// them, the DeleteRange was spliced into the cache as it was
+			// applied, so the Get had nothing to rebuild.
+			want := rangeDelCacheSamples{
+				invalidations: 1, rebuilds: 1, tombstonesSum: 1, fragmentsSum: 1, concurrencySum: 1,
+			}
+			if incremental {
+				want = rangeDelCacheSamples{
+					invalidations: 1, splices: 1, versionFragmentsSum: 1, touched: 1, touchedSum: 1,
+				}
+			}
+			require.Equal(t, want, readRangeDelCacheSamples(t, d.Metrics().MemTableRangeDelCache))
+
+			// A second Get finds the cache built and records nothing.
+			_, _, err = d.Get([]byte("b"))
+			require.ErrorIs(t, err, ErrNotFound)
+			require.Equal(t, want, readRangeDelCacheSamples(t, d.Metrics().MemTableRangeDelCache))
+		})
 	}
-	require.Equal(t, want, readRangeDelCacheSamples(t, d.Metrics().MemTableRangeDelCache))
-
-	// A second Get finds the cache built and records nothing.
-	_, _, err = d.Get([]byte("b"))
-	require.ErrorIs(t, err, ErrNotFound)
-	require.Equal(t, want, readRangeDelCacheSamples(t, d.Metrics().MemTableRangeDelCache))
 }
 
 func TestMetricsWAmpDisableWAL(t *testing.T) {

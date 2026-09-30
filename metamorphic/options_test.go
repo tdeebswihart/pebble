@@ -81,6 +81,7 @@ func TestOptionsRoundtrip(t *testing.T) {
 		"Experimental.DisableIngestAsFlushable:",
 		"Experimental.EnableColumnarBlocks:",
 		"Experimental.EnableValueBlocks:",
+		"Experimental.IncrementalRangeDelFragments:",
 		"Experimental.IneffectualSingleDeleteCallback:",
 		"Experimental.IngestSplit:",
 		"Experimental.RemoteStorage:",
@@ -123,6 +124,7 @@ func TestOptionsRoundtrip(t *testing.T) {
 		// that the return values are equal.
 		expectEqualFn(t, o.Opts.Experimental.EnableValueBlocks, parsed.Opts.Experimental.EnableValueBlocks)
 		expectEqualFn(t, o.Opts.Experimental.DisableIngestAsFlushable, parsed.Opts.Experimental.DisableIngestAsFlushable)
+		expectEqualFn(t, o.Opts.Experimental.IncrementalRangeDelFragments, parsed.Opts.Experimental.IncrementalRangeDelFragments)
 		expectEqualFn(t, o.Opts.Experimental.IngestSplit, parsed.Opts.Experimental.IngestSplit)
 		expectEqualFn(t, o.Opts.Experimental.CompactionGarbageFractionForMaxConcurrency, parsed.Opts.Experimental.CompactionGarbageFractionForMaxConcurrency)
 		expectEqualFn(t, o.Opts.Experimental.TombstoneDenseCompactionThreshold, parsed.Opts.Experimental.TombstoneDenseCompactionThreshold)

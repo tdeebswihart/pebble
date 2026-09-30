@@ -88,8 +88,13 @@ type memTable struct {
 	// applied. The memtable cannot be flushed to disk until the writer refs
 	// drops to zero.
 	writerRefs atomic.Int32
-	tombstones rangeDelFragments
-	rangeKeys  keySpanCache
+	// incrementalRangeDels is Options.Experimental.IncrementalRangeDelFragments
+	// as of init. If it's set, tombstones holds the fragmented range deletions,
+	// and otherwise tombstoneCache does.
+	incrementalRangeDels bool
+	tombstones           rangeDelFragments
+	tombstoneCache       keySpanCache
+	rangeKeys            keySpanCache
 	// The current logSeqNum at the time the memtable was created. This is
 	// guaranteed to be less than or equal to any seqnum stored in the memtable.
 	logSeqNum                    base.SeqNum
@@ -151,12 +156,25 @@ func (m *memTable) init(opts memTableOptions) {
 		releaseAccountingReservation: opts.releaseAccountingReservation,
 	}
 	m.writerRefs.Store(1)
-	m.tombstones = rangeDelFragments{
-		cmp:       m.cmp,
-		formatKey: m.formatKey,
-		skl:       &m.rangeDelSkl,
-		stats:     opts.rangeDelCacheStats,
-		chunkSize: rangeDelChunkSize,
+	m.incrementalRangeDels = opts.Experimental.IncrementalRangeDelFragments != nil &&
+		opts.Experimental.IncrementalRangeDelFragments()
+	if m.incrementalRangeDels {
+		m.tombstones = rangeDelFragments{
+			cmp:       m.cmp,
+			formatKey: m.formatKey,
+			skl:       &m.rangeDelSkl,
+			stats:     opts.rangeDelCacheStats,
+			chunkSize: rangeDelChunkSize,
+		}
+	} else {
+		m.tombstoneCache = keySpanCache{
+			cmp:            m.cmp,
+			formatKey:      m.formatKey,
+			skl:            &m.rangeDelSkl,
+			constructSpan:  rangeDelConstructSpan,
+			stats:          opts.rangeDelCacheStats,
+			bypassDisjoint: true,
+		}
 	}
 	m.rangeKeys = keySpanCache{
 		cmp:           m.cmp,
@@ -222,18 +240,21 @@ func (m *memTable) apply(batch *Batch, seqNum base.SeqNum) error {
 	}
 
 	var ins arenaskl.Inserter
-	var rangeKeyCount uint32
-	// rangeDels collects the batch's range deletions as they're added to
-	// rangeDelSkl. They're spliced into m.tombstones before apply returns, even
-	// if it returns an error, so that the fragments hold every range deletion in
-	// rangeDelSkl once the applies that added them have returned.
+	var tombstoneCount, rangeKeyCount uint32
+	// If incrementalRangeDels is set, rangeDels collects the batch's range
+	// deletions as they're added to rangeDelSkl. They're spliced into
+	// m.tombstones before apply returns, even if it returns an error, so that
+	// the fragments hold every range deletion in rangeDelSkl once the applies
+	// that added them have returned.
 	var rangeDelsBuf [4]rangeDelTombstone
 	rangeDels := rangeDelsBuf[:0]
-	defer func() {
-		if len(rangeDels) > 0 {
-			m.tombstones.add(rangeDels)
-		}
-	}()
+	if m.incrementalRangeDels {
+		defer func() {
+			if len(rangeDels) > 0 {
+				m.tombstones.add(rangeDels)
+			}
+		}()
+	}
 	startSeqNum := seqNum
 	for r := batch.Reader(); ; seqNum++ {
 		kind, ukey, value, ok, err := r.Next()
@@ -246,13 +267,18 @@ func (m *memTable) apply(batch *Batch, seqNum base.SeqNum) error {
 		ikey := base.MakeInternalKey(ukey, seqNum, kind)
 		switch kind {
 		case InternalKeyKindRangeDelete:
-			// The batch's buffer may be reused once the commit completes, so
-			// the fragments' bounds must point at the copies in the arena.
-			var start, end []byte
-			start, end, err = m.rangeDelSkl.AddAndGetSlices(ikey, value)
-			if err == nil {
-				rangeDels = append(rangeDels,
-					rangeDelTombstone{start: start, end: end, trailer: ikey.Trailer})
+			if m.incrementalRangeDels {
+				// The batch's buffer may be reused once the commit completes, so
+				// the fragments' bounds must point at the copies in the arena.
+				var start, end []byte
+				start, end, err = m.rangeDelSkl.AddAndGetSlices(ikey, value)
+				if err == nil {
+					rangeDels = append(rangeDels,
+						rangeDelTombstone{start: start, end: end, trailer: ikey.Trailer})
+				}
+			} else {
+				err = m.rangeDelSkl.Add(ikey, value)
+				tombstoneCount++
 			}
 		case InternalKeyKindRangeKeySet, InternalKeyKindRangeKeyUnset, InternalKeyKindRangeKeyDelete:
 			err = m.rangeKeySkl.Add(ikey, value)
@@ -274,6 +300,9 @@ func (m *memTable) apply(batch *Batch, seqNum base.SeqNum) error {
 		return base.CorruptionErrorf("pebble: inconsistent batch count: %d vs %d",
 			errors.Safe(seqNum), errors.Safe(startSeqNum+base.SeqNum(batch.Count())))
 	}
+	if tombstoneCount != 0 {
+		m.tombstoneCache.invalidate(tombstoneCount)
+	}
 	if rangeKeyCount != 0 {
 		m.rangeKeys.invalidate(rangeKeyCount)
 	}
@@ -294,6 +323,13 @@ func (m *memTable) newFlushIter(o *IterOptions) internalIterator {
 
 // newRangeDelIter is part of the flushable interface.
 func (m *memTable) newRangeDelIter(*IterOptions) keyspan.FragmentIterator {
+	if !m.incrementalRangeDels {
+		tombstones := m.tombstoneCache.get()
+		if tombstones == nil {
+			return nil
+		}
+		return keyspan.NewIter(m.cmp, tombstones)
+	}
 	v := m.tombstones.version.Load()
 	if v == nil {
 		return nil
@@ -369,8 +405,9 @@ func (m *memTable) computePossibleOverlaps(fn func(bounded) shouldContinue, boun
 // fragmented state of the memtable's keys of a given kind at the moment while
 // there existed `count` keys of that kind in the memtable.
 //
-// It's currently only used to contain fragmented range keys. Range deletions
-// are kept up to date as they're applied by rangeDelFragments instead.
+// It's used to contain fragmented range keys, and fragmented range deletion
+// tombstones unless Options.Experimental.IncrementalRangeDelFragments is set,
+// in which case rangeDelFragments keeps them up to date as they're applied.
 type keySpanFrags struct {
 	count uint32
 	once  sync.Once
@@ -536,6 +573,11 @@ type keySpanCache struct {
 	// stats, if non-nil, records invalidations and rebuilds of the cache. It is
 	// owned by the DB and shared by the caches of all its memtables.
 	stats *keySpanCacheStats
+	// bypassDisjoint is passed to keySpanFrags.get. It's set only for range
+	// deletions: a RangeKeySet decodes to several keys that share a trailer,
+	// and the Fragmenter sorts keys with an unstable sort, so emitting a lone
+	// range key span as-is could change the order of its keys.
+	bypassDisjoint bool
 }
 
 // Invalidate the current set of cached spans, indicating the number of
@@ -568,10 +610,7 @@ func (c *keySpanCache) get() []keyspan.Span {
 	if frags == nil {
 		return nil
 	}
-	// A RangeKeySet decodes to several keys that share a trailer, and the
-	// Fragmenter sorts keys with an unstable sort, so emitting a lone range key
-	// span as-is could change the order of its keys.
-	return frags.get(c.skl, c.cmp, c.formatKey, c.constructSpan, false /* bypassDisjoint */, c.stats)
+	return frags.get(c.skl, c.cmp, c.formatKey, c.constructSpan, c.bypassDisjoint, c.stats)
 }
 
 // rangeDelTombstone is a range deletion [start, end)#trailer that apply has
@@ -1149,11 +1188,9 @@ func (it *rangeDelChunkIter) String() string {
 // keySpanCacheStats records how often keySpanCaches are invalidated and
 // rebuilt, how long readers wait on a rebuild, and what splicing range
 // deletions into rangeDelFragments costs. A single instance is owned by the DB
-// and shared by the range deletion fragments of all its memtables. Those
-// splice rather than rebuild, and the range key caches have no stats, so a DB
-// records no rebuilds; only a keySpanFrags.get that is passed the stats does.
-// All methods are safe to call on a nil receiver, in which case they do
-// nothing.
+// and shared by the range deletion caches and fragments of all its memtables.
+// The range key caches have no stats. All methods are safe to call on a nil
+// receiver, in which case they do nothing.
 type keySpanCacheStats struct {
 	// The duration histograms observe float64(time.Duration), i.e. nanoseconds.
 	rebuildDuration        prometheus.Histogram

@@ -30,6 +30,8 @@ import (
 	"github.com/cockroachdb/pebble/internal/keyspan"
 	"github.com/cockroachdb/pebble/internal/rangedel"
 	"github.com/cockroachdb/pebble/internal/rangekey"
+	"github.com/cockroachdb/pebble/internal/testutils"
+	"github.com/cockroachdb/pebble/vfs"
 	"github.com/prometheus/client_golang/prometheus"
 	prometheusgo "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/require"
@@ -60,6 +62,13 @@ func (m *memTable) get(key []byte) (value []byte, err error) {
 // interaction with prepare/apply. Caveat emptor!
 func (m *memTable) set(key InternalKey, value []byte) error {
 	if key.Kind() == InternalKeyKindRangeDelete {
+		if !m.incrementalRangeDels {
+			if err := m.rangeDelSkl.Add(key, value); err != nil {
+				return err
+			}
+			m.tombstoneCache.invalidate(1)
+			return nil
+		}
 		start, end, err := m.rangeDelSkl.AddAndGetSlices(key, value)
 		if err != nil {
 			return err
@@ -80,7 +89,18 @@ func (m *memTable) set(key InternalKey, value []byte) error {
 // rangeDelSpans returns the memtable's fragmented range deletions in a single
 // slice, or nil if it has none.
 func (m *memTable) rangeDelSpans() []keyspan.Span {
+	if !m.incrementalRangeDels {
+		return m.tombstoneCache.get()
+	}
 	return m.tombstones.version.Load().spans()
+}
+
+// incrementalRangeDelOptions returns Options that set
+// Experimental.IncrementalRangeDelFragments to incremental.
+func incrementalRangeDelOptions(incremental bool) *Options {
+	opts := &Options{}
+	opts.Experimental.IncrementalRangeDelFragments = func() bool { return incremental }
+	return opts
 }
 
 // count returns the number of entries in a DB.
@@ -298,6 +318,14 @@ func TestMemTableIter(t *testing.T) {
 
 func TestMemTableDeleteRange(t *testing.T) {
 	defer leaktest.AfterTest(t)()
+	for _, incremental := range []bool{false, true} {
+		t.Run(fmt.Sprintf("incremental=%t", incremental), func(t *testing.T) {
+			testMemTableDeleteRange(t, incremental)
+		})
+	}
+}
+
+func testMemTableDeleteRange(t *testing.T, incremental bool) {
 	var mem *memTable
 	var seqNum base.SeqNum
 
@@ -314,7 +342,7 @@ func TestMemTableDeleteRange(t *testing.T) {
 				return err.Error()
 			}
 			if mem == nil {
-				mem = newMemTable(memTableOptions{})
+				mem = newMemTable(memTableOptions{Options: incrementalRangeDelOptions(incremental)})
 			}
 			if err := mem.apply(b, seqNum); err != nil {
 				return err.Error()
@@ -343,11 +371,21 @@ func TestMemTableDeleteRange(t *testing.T) {
 
 func TestMemTableConcurrentDeleteRange(t *testing.T) {
 	defer leaktest.AfterTest(t)()
+	for _, incremental := range []bool{false, true} {
+		t.Run(fmt.Sprintf("incremental=%t", incremental), func(t *testing.T) {
+			testMemTableConcurrentDeleteRange(t, incremental)
+		})
+	}
+}
+
+func testMemTableConcurrentDeleteRange(t *testing.T, incremental bool) {
 	// Concurrently write and read range tombstones. Workers add range
 	// tombstones, and then immediately retrieve them verifying that the
 	// tombstones they've added are all present.
 
-	m := newMemTable(memTableOptions{Options: &Options{MemTableSize: 64 << 20}})
+	opts := incrementalRangeDelOptions(incremental)
+	opts.MemTableSize = 64 << 20
+	m := newMemTable(memTableOptions{Options: opts})
 
 	const workers = 10
 	eg, _ := errgroup.WithContext(context.Background())
@@ -439,10 +477,111 @@ func readRangeDelCacheSamples(t testing.TB, m MemTableRangeDelCacheMetrics) rang
 	return s
 }
 
+// TestMemTableRangeDelCacheStats checks the stats that a memtable records when
+// it rebuilds its range deletion fragments on a read.
 func TestMemTableRangeDelCacheStats(t *testing.T) {
 	defer leaktest.AfterTest(t)()
 	stats := newKeySpanCacheStats()
-	m := newMemTable(memTableOptions{rangeDelCacheStats: stats})
+	m := newMemTable(memTableOptions{Options: incrementalRangeDelOptions(false), rangeDelCacheStats: stats})
+
+	seqNum := base.SeqNum(1)
+	apply := func(fn func(b *Batch)) {
+		t.Helper()
+		b := newBatch(nil)
+		defer b.Close()
+		fn(b)
+		require.NoError(t, m.apply(b, seqNum))
+		seqNum += base.SeqNum(b.Count())
+	}
+	// read creates a range deletion iterator and returns the number of
+	// fragments it contains.
+	read := func() (fragments int) {
+		t.Helper()
+		it := m.newRangeDelIter(nil)
+		require.NotNil(t, it)
+		defer it.Close()
+		for s, err := it.First(); s != nil; s, err = it.Next() {
+			require.NoError(t, err)
+			fragments++
+		}
+		return fragments
+	}
+	samples := func() rangeDelCacheSamples {
+		t.Helper()
+		return readRangeDelCacheSamples(t, stats.metrics())
+	}
+
+	// Nothing has been recorded before any range deletion is applied, and
+	// there is no cache to build.
+	require.Equal(t, rangeDelCacheSamples{}, samples())
+	require.Nil(t, m.newRangeDelIter(nil))
+	require.Equal(t, rangeDelCacheSamples{}, samples())
+
+	// Applying a range deletion invalidates the cache but does not build it.
+	apply(func(b *Batch) { require.NoError(t, b.DeleteRange([]byte("a"), []byte("c"), nil)) })
+	require.Equal(t, rangeDelCacheSamples{invalidations: 1}, samples())
+
+	// The first read builds the cache.
+	require.Equal(t, 1, read())
+	require.Equal(t, rangeDelCacheSamples{
+		invalidations: 1, rebuilds: 1, tombstonesSum: 1, fragmentsSum: 1, concurrencySum: 1,
+	}, samples())
+
+	// Reads of the built cache record nothing.
+	for i := 0; i < 3; i++ {
+		require.Equal(t, 1, read())
+	}
+	require.Equal(t, rangeDelCacheSamples{
+		invalidations: 1, rebuilds: 1, tombstonesSum: 1, fragmentsSum: 1, concurrencySum: 1,
+	}, samples())
+
+	// Batches without range deletions leave the cache and the stats alone.
+	apply(func(b *Batch) { require.NoError(t, b.Set([]byte("a"), []byte("v"), nil)) })
+	apply(func(b *Batch) {
+		require.NoError(t, b.RangeKeySet([]byte("a"), []byte("z"), nil, []byte("v"), nil))
+	})
+	require.NotNil(t, m.newRangeKeyIter(nil))
+	require.Equal(t, 1, read())
+	require.Equal(t, rangeDelCacheSamples{
+		invalidations: 1, rebuilds: 1, tombstonesSum: 1, fragmentsSum: 1, concurrencySum: 1,
+	}, samples())
+
+	// A batch with two range deletions invalidates once, and the rebuild sees
+	// all three tombstones: [a,c), [b,d), [c,e) fragment into [a,b), [b,c),
+	// [c,d), [d,e).
+	apply(func(b *Batch) {
+		require.NoError(t, b.DeleteRange([]byte("b"), []byte("d"), nil))
+		require.NoError(t, b.DeleteRange([]byte("c"), []byte("e"), nil))
+	})
+	require.Equal(t, uint64(2), samples().invalidations)
+	require.Equal(t, 4, read())
+	require.Equal(t, rangeDelCacheSamples{
+		invalidations: 2, rebuilds: 2, tombstonesSum: 1 + 3, fragmentsSum: 1 + 4, concurrencySum: 2,
+	}, samples())
+
+	// Several invalidations between reads are absorbed by a single rebuild.
+	apply(func(b *Batch) { require.NoError(t, b.DeleteRange([]byte("e"), []byte("f"), nil)) })
+	apply(func(b *Batch) { require.NoError(t, b.DeleteRange([]byte("f"), []byte("g"), nil)) })
+	require.Equal(t, uint64(4), samples().invalidations)
+	require.Equal(t, 6, read())
+	require.Equal(t, 6, read())
+	require.Equal(t, rangeDelCacheSamples{
+		invalidations: 4, rebuilds: 3, tombstonesSum: 1 + 3 + 5, fragmentsSum: 1 + 4 + 6,
+		concurrencySum: 3,
+	}, samples())
+
+	// Nothing above waited on another goroutine's rebuild, or spliced.
+	require.Equal(t, uint64(0), samples().readerWaits)
+	require.Equal(t, uint64(0), samples().splices)
+	require.Equal(t, uint64(0), samples().touched)
+}
+
+// TestMemTableRangeDelSpliceStats checks the stats that a memtable records
+// when it splices range deletions into its fragments.
+func TestMemTableRangeDelSpliceStats(t *testing.T) {
+	defer leaktest.AfterTest(t)()
+	stats := newKeySpanCacheStats()
+	m := newMemTable(memTableOptions{Options: incrementalRangeDelOptions(true), rangeDelCacheStats: stats})
 
 	seqNum := base.SeqNum(1)
 	apply := func(fn func(b *Batch)) {
@@ -535,20 +674,22 @@ func TestMemTableRangeDelCacheStats(t *testing.T) {
 }
 
 // TestMemTableRangeDelCacheStatsNil checks that a memtable without stats
-// splices range deletions into its fragments.
+// rebuilds or splices its range deletion fragments.
 func TestMemTableRangeDelCacheStatsNil(t *testing.T) {
 	defer leaktest.AfterTest(t)()
-	m := newMemTable(memTableOptions{})
-	b := newBatch(nil)
-	defer b.Close()
-	require.NoError(t, b.DeleteRange([]byte("a"), []byte("c"), nil))
-	require.NoError(t, m.apply(b, 1))
-	it := m.newRangeDelIter(nil)
-	require.NotNil(t, it)
-	s, err := it.First()
-	require.NoError(t, err)
-	require.NotNil(t, s)
-	it.Close()
+	for _, incremental := range []bool{false, true} {
+		m := newMemTable(memTableOptions{Options: incrementalRangeDelOptions(incremental)})
+		b := newBatch(nil)
+		require.NoError(t, b.DeleteRange([]byte("a"), []byte("c"), nil))
+		require.NoError(t, m.apply(b, 1))
+		b.Close()
+		it := m.newRangeDelIter(nil)
+		require.NotNil(t, it)
+		s, err := it.First()
+		require.NoError(t, err)
+		require.NotNil(t, s)
+		it.Close()
+	}
 	require.Equal(t, MemTableRangeDelCacheMetrics{}, (*keySpanCacheStats)(nil).metrics())
 }
 
@@ -716,8 +857,8 @@ func (ks rangeDelTestKeys) randBounds(rng *rand.Rand, prev rangeDelTestBounds) r
 }
 
 // TestMemTableRangeDelFragmentsMatchReference checks that the memtable's
-// fragmented range deletions match referenceRangeDelFragments over random
-// tombstone sets.
+// fragmented range deletions, rebuilt or spliced, match
+// referenceRangeDelFragments over random tombstone sets.
 func TestMemTableRangeDelFragmentsMatchReference(t *testing.T) {
 	defer leaktest.AfterTest(t)()
 	seed := uint64(time.Now().UnixNano())
@@ -728,7 +869,14 @@ func TestMemTableRangeDelFragmentsMatchReference(t *testing.T) {
 
 	sentinel := keyspan.Key{Trailer: base.MakeTrailer(base.SeqNumMax, base.InternalKeyKindRangeDelete)}
 	for iter := 0; iter < 2000; iter++ {
-		m := newMemTable(memTableOptions{size: 256 << 10, releaseAccountingReservation: func() {}})
+		// Alternate between memtables that rebuild their fragments and ones that
+		// splice range deletions into them.
+		incremental := iter%2 == 1
+		m := newMemTable(memTableOptions{
+			Options:                      incrementalRangeDelOptions(incremental),
+			size:                         256 << 10,
+			releaseAccountingReservation: func() {},
+		})
 		n := rng.IntN(48)
 		tombstones := make([]rangeDelTestBounds, n)
 		for i := range tombstones {
@@ -752,8 +900,9 @@ func TestMemTableRangeDelFragmentsMatchReference(t *testing.T) {
 		want := referenceRangeDelFragments(&m.rangeDelSkl, m.cmp, m.formatKey)
 		check := func(name string, got []keyspan.Span) {
 			t.Helper()
-			msg := fmt.Sprintf("seed %d, iteration %d, %s\ntombstones: %s\nwant: %s\ngot:  %s",
-				seed, iter, name, desc.String(), want, got)
+			msg := fmt.Sprintf(
+				"seed %d, iteration %d, incremental %t, %s\ntombstones: %s\nwant: %s\ngot:  %s",
+				seed, iter, incremental, name, desc.String(), want, got)
 			require.Equal(t, want == nil, got == nil, msg)
 			require.Equal(t, len(want), len(got), msg)
 			for i := range want {
@@ -834,10 +983,14 @@ func fragmentRangeDelTombstones(
 // small ones split a memtable over smallRangeDelTestKeys into several chunks.
 var rangeDelTestChunkSizes = []int{1, 2, 3, rangeDelChunkSize}
 
-// newRangeDelTestMemTable returns a memtable of the given size whose range
-// deletion fragments use chunks of chunkSize.
+// newRangeDelTestMemTable returns a memtable of the given size that splices
+// range deletions into fragments with chunks of chunkSize.
 func newRangeDelTestMemTable(size, chunkSize int) *memTable {
-	m := newMemTable(memTableOptions{size: size, releaseAccountingReservation: func() {}})
+	m := newMemTable(memTableOptions{
+		Options:                      incrementalRangeDelOptions(true),
+		size:                         size,
+		releaseAccountingReservation: func() {},
+	})
 	m.tombstones.chunkSize = chunkSize
 	return m
 }
@@ -1594,6 +1747,122 @@ func TestMemTableRangeDelCheckFragments(t *testing.T) {
 	require.NotPanics(t, func() { checkRangeDelFragments(&m.rangeDelSkl, m.cmp, m.formatKey, large, 2) })
 }
 
+// TestMemTableRangeDelOptionSwitch flips
+// Options.Experimental.IncrementalRangeDelFragments between memtables and
+// between batches. Each memtable must keep the mode it was created with, use
+// only that mode's structure, and hold the fragments of its range deletions
+// after every batch.
+func TestMemTableRangeDelOptionSwitch(t *testing.T) {
+	defer leaktest.AfterTest(t)()
+	seed := uint64(time.Now().UnixNano())
+	t.Logf("seed: %d", seed)
+	rng := rand.New(rand.NewPCG(seed, seed))
+	ks := smallRangeDelTestKeys
+
+	var incremental atomic.Bool
+	opts := &Options{}
+	opts.Experimental.IncrementalRangeDelFragments = incremental.Load
+	type memWithMode struct {
+		m           *memTable
+		incremental bool
+		seqNum      base.SeqNum
+	}
+	var mems []memWithMode
+	defer func() {
+		for _, mm := range mems {
+			mm.m.free()
+		}
+	}()
+	for i := 0; i < 6; i++ {
+		incremental.Store(i%2 == 0)
+		m := newMemTable(memTableOptions{
+			Options: opts, size: 256 << 10, releaseAccountingReservation: func() {},
+		})
+		mems = append(mems, memWithMode{m: m, incremental: i%2 == 0, seqNum: 1})
+		for j := 0; j < 20; j++ {
+			incremental.Store(rng.IntN(2) == 0)
+			mm := &mems[rng.IntN(len(mems))]
+			b := newBatch(nil)
+			var prev rangeDelTestBounds
+			for k, n := 0, 1+rng.IntN(3); k < n; k++ {
+				prev = ks.randBounds(rng, prev)
+				require.NoError(t, b.DeleteRange(ks.key(prev.start), ks.key(prev.end), nil))
+			}
+			require.NoError(t, mm.m.apply(b, mm.seqNum))
+			mm.seqNum += base.SeqNum(b.Count())
+			b.Close()
+
+			require.Equal(t, mm.incremental, mm.m.incrementalRangeDels)
+			if mm.incremental {
+				require.Nil(t, mm.m.tombstoneCache.frags.Load())
+			} else {
+				require.Nil(t, mm.m.tombstones.version.Load())
+			}
+			want := referenceRangeDelFragments(&mm.m.rangeDelSkl, mm.m.cmp, mm.m.formatKey)
+			requireRangeDelSpansEqual(t, mm.m.cmp, want, mm.m.rangeDelSpans(),
+				"seed %d, memtable created with incremental=%t", seed, mm.incremental)
+		}
+	}
+}
+
+// TestMemTableRangeDelOptionSwitchDB flips
+// Options.Experimental.IncrementalRangeDelFragments while a DB is open. The
+// mutable memtable keeps its mode until it's rotated, the memtable that
+// replaces it takes the new mode, and reads see every range deletion
+// throughout.
+func TestMemTableRangeDelOptionSwitchDB(t *testing.T) {
+	defer leaktest.AfterTest(t)()
+	var incremental atomic.Bool
+	opts := &Options{FS: vfs.NewMem(), Logger: testutils.Logger{T: t}}
+	opts.Experimental.IncrementalRangeDelFragments = incremental.Load
+	d, err := Open("", opts)
+	require.NoError(t, err)
+	defer func() { require.NoError(t, d.Close()) }()
+
+	mutableMode := func() bool {
+		d.mu.Lock()
+		defer d.mu.Unlock()
+		return d.mu.mem.mutable.incrementalRangeDels
+	}
+	key := func(i int, suffix string) []byte { return fmt.Appendf(nil, "%03d/%s", i, suffix) }
+	// requireDeleted checks that range deletion i deleted key i/b but not i/c.
+	requireDeleted := func(i int) {
+		t.Helper()
+		_, _, err := d.Get(key(i, "b"))
+		require.ErrorIs(t, err, ErrNotFound)
+		v, closer, err := d.Get(key(i, "c"))
+		require.NoError(t, err)
+		require.Equal(t, "v", string(v))
+		require.NoError(t, closer.Close())
+	}
+	write := func(i int) {
+		t.Helper()
+		require.NoError(t, d.Set(key(i, "b"), []byte("v"), nil))
+		require.NoError(t, d.Set(key(i, "c"), []byte("v"), nil))
+		require.NoError(t, d.DeleteRange(key(i, "a"), key(i, "c"), nil))
+	}
+
+	require.False(t, mutableMode())
+	for i := 0; i < 6; i++ {
+		mode := mutableMode()
+		write(2 * i)
+		requireDeleted(2 * i)
+		// Flipping the option leaves the mutable memtable's mode alone.
+		incremental.Store(!mode)
+		require.Equal(t, mode, mutableMode())
+		write(2*i + 1)
+		for j := 0; j <= 2*i+1; j++ {
+			requireDeleted(j)
+		}
+		// The memtable that replaces it takes the new mode.
+		require.NoError(t, d.Flush())
+		require.Equal(t, !mode, mutableMode())
+		for j := 0; j <= 2*i+1; j++ {
+			requireDeleted(j)
+		}
+	}
+}
+
 func TestMemTableReserved(t *testing.T) {
 	defer leaktest.AfterTest(t)()
 	m := newMemTable(memTableOptions{size: 5000})
@@ -1815,6 +2084,7 @@ func rangeDelBenchKey(i int) []byte { return fmt.Appendf(nil, "%08d", i) }
 // splices.
 func newRangeDelBenchMemTable(b *testing.B, n int, layout string) *memTable {
 	m := newMemTable(memTableOptions{
+		Options:                      incrementalRangeDelOptions(true),
 		size:                         max(8<<20, n*128),
 		releaseAccountingReservation: func() {},
 	})

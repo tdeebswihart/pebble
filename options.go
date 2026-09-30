@@ -749,6 +749,14 @@ type Options struct {
 		// major version is at least `FormatFlushableIngest`.
 		DisableIngestAsFlushable func() bool
 
+		// IncrementalRangeDelFragments, if it returns true, makes a memtable keep
+		// its fragmented range deletions up to date as batches are applied, so
+		// that readers never rebuild them. Otherwise the first reader after a
+		// batch with a range deletion rebuilds them, and concurrent readers wait
+		// for the rebuild. A memtable reads the option once when it's created
+		// and keeps that behavior for its lifetime.
+		IncrementalRangeDelFragments func() bool
+
 		// RemoteStorage enables use of remote storage (e.g. S3) for storing
 		// sstables. Setting this option enables use of CreateOnShared option and
 		// allows ingestion of external files.
@@ -1840,6 +1848,9 @@ func (o *Options) String() string {
 	fmt.Fprintf(&buf, "  flush_delay_range_key=%s\n", o.FlushDelayRangeKey)
 	fmt.Fprintf(&buf, "  flush_split_bytes=%d\n", o.FlushSplitBytes)
 	fmt.Fprintf(&buf, "  format_major_version=%d\n", o.FormatMajorVersion)
+	if o.Experimental.IncrementalRangeDelFragments != nil && o.Experimental.IncrementalRangeDelFragments() {
+		fmt.Fprintf(&buf, "  incremental_range_del_fragments=%t\n", true)
+	}
 	fmt.Fprintf(&buf, "  key_schema=%s\n", o.KeySchema)
 	fmt.Fprintf(&buf, "  l0_compaction_concurrency=%d\n", o.Experimental.L0CompactionConcurrency)
 	fmt.Fprintf(&buf, "  l0_compaction_file_threshold=%d\n", o.L0CompactionFileThreshold)
@@ -2169,6 +2180,12 @@ func (o *Options) Parse(s string, hooks *ParseHooks) error {
 				}
 				if err == nil {
 					o.FormatMajorVersion = FormatMajorVersion(v)
+				}
+			case "incremental_range_del_fragments":
+				var v bool
+				v, err = strconv.ParseBool(value)
+				if err == nil {
+					o.Experimental.IncrementalRangeDelFragments = func() bool { return v }
 				}
 			case "key_schema":
 				o.KeySchema = value
