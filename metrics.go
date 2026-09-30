@@ -375,6 +375,10 @@ type Metrics struct {
 
 	WALMetrics WALMetrics
 
+	// MemTableRangeDelCache describes the invalidation and rebuild activity of
+	// the memtables' caches of fragmented range deletions.
+	MemTableRangeDelCache MemTableRangeDelCacheMetrics
+
 	CategoryStats []block.CategoryStatsAggregate
 
 	SecondaryCacheMetrics SecondaryCacheMetrics
@@ -552,6 +556,59 @@ type WALMetrics struct {
 	// Updated whenever a wal.Writer is closed
 	record.LogWriterMetrics
 }
+
+// MemTableRangeDelCacheMetrics describes the cache of fragmented range
+// deletions ("tombstones") that memtables keep so that readers do not have to
+// fragment the memtable's range deletions on every read.
+//
+// Every batch that contains a range deletion invalidates the cache. The next
+// reader rebuilds it, and readers that arrive during the rebuild wait for it to
+// finish. The statistics cover all of the DB's memtables. They are only
+// collected for range deletions, not for range keys.
+//
+// The histograms are cumulative since the DB was opened, and are shared with
+// the DB rather than copied.
+type MemTableRangeDelCacheMetrics struct {
+	// RebuildDuration records the wall time, in nanoseconds, that each rebuild
+	// of the cache took. Only the goroutine that ran the rebuild records a
+	// sample, so the histogram's sample count is the number of rebuilds.
+	RebuildDuration prometheus.Histogram
+	// ReaderWait records the time, in nanoseconds, that readers spent waiting
+	// for a rebuild that another goroutine ran. A sample is recorded by each
+	// reader that reached the rebuild before it was marked complete and did not
+	// run it; readers that find the cache already built record nothing.
+	ReaderWait prometheus.Histogram
+	// RebuildTombstones records, for each rebuild, the number of range
+	// deletions that the memtable held when the cache being rebuilt was
+	// invalidated. The unit is range deletions (before fragmentation).
+	RebuildTombstones prometheus.Histogram
+	// RebuildFragments records, for each rebuild, the number of fragmented spans
+	// that the rebuild produced.
+	RebuildFragments prometheus.Histogram
+	// ConcurrentRebuilds records, for each rebuild, the number of rebuilds in
+	// flight when it started, including itself. Rebuilds are counted across all
+	// of the DB's memtables. The unit is rebuilds.
+	ConcurrentRebuilds prometheus.Histogram
+	// Invalidations is the cumulative number of times a memtable's cache of
+	// fragmented range deletions was invalidated, which is once per applied batch
+	// that contains a range deletion.
+	Invalidations uint64
+}
+
+var (
+	// rangeDelCacheDurationBuckets are the histogram buckets, in nanoseconds,
+	// for MemTableRangeDelCacheMetrics' duration histograms: 29 exponentially
+	// spaced buckets (four per decade) from 1µs to 10s.
+	rangeDelCacheDurationBuckets = prometheus.ExponentialBucketsRange(
+		float64(time.Microsecond), float64(10*time.Second), 29)
+	// rangeDelCacheCountBuckets are the histogram buckets for
+	// MemTableRangeDelCacheMetrics' count histograms: 21 exponentially spaced
+	// buckets from 1 to 1e6.
+	rangeDelCacheCountBuckets = prometheus.ExponentialBucketsRange(1, 1e6, 21)
+	// rangeDelCacheConcurrencyBuckets are the histogram buckets for
+	// MemTableRangeDelCacheMetrics.ConcurrentRebuilds: 1, 2, 4, ..., 64.
+	rangeDelCacheConcurrencyBuckets = prometheus.ExponentialBuckets(1, 2, 7)
+)
 
 var (
 	// FsyncLatencyBuckets are prometheus histogram buckets suitable for a histogram
