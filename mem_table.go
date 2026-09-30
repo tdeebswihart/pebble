@@ -1135,9 +1135,24 @@ type rangeDelChunkIter struct {
 	// ci is the current chunk, and i the current span within it. ci is -1
 	// before the first span and len(chunks) after the last, where i is unused.
 	ci, i int
+	// spans is chunks[ci].spans, or nil before the first span and after the
+	// last, so that Next and Prev within a chunk index it as keyspan.Iter
+	// indexes its spans.
+	spans []keyspan.Span
 }
 
 var _ keyspan.FragmentIterator = (*rangeDelChunkIter)(nil)
+
+// setChunk positions the iterator at chunk ci, which is -1 before the first
+// span, or len(chunks) after the last.
+func (it *rangeDelChunkIter) setChunk(ci int) {
+	it.ci = ci
+	if uint(ci) < uint(len(it.chunks)) {
+		it.spans = it.chunks[ci].spans
+	} else {
+		it.spans = nil
+	}
+}
 
 // SeekGE implements keyspan.FragmentIterator.
 func (it *rangeDelChunkIter) SeekGE(key []byte) (*keyspan.Span, error) {
@@ -1153,11 +1168,11 @@ func (it *rangeDelChunkIter) SeekGE(key []byte) (*keyspan.Span, error) {
 			hi = h
 		}
 	}
-	it.ci = ci
+	it.setChunk(ci)
 	if ci == len(it.chunks) {
 		return nil, nil
 	}
-	spans := it.chunks[ci].spans
+	spans := it.spans
 	i, hi := 0, len(spans)-1
 	for i < hi {
 		h := int(uint(i+hi) >> 1)
@@ -1185,11 +1200,11 @@ func (it *rangeDelChunkIter) SeekLT(key []byte) (*keyspan.Span, error) {
 		}
 	}
 	ci--
-	it.ci = ci
+	it.setChunk(ci)
 	if ci < 0 {
 		return nil, nil
 	}
-	spans := it.chunks[ci].spans
+	spans := it.spans
 	i, hi := 1, len(spans)
 	for i < hi {
 		h := int(uint(i+hi) >> 1)
@@ -1205,52 +1220,70 @@ func (it *rangeDelChunkIter) SeekLT(key []byte) (*keyspan.Span, error) {
 
 // First implements keyspan.FragmentIterator.
 func (it *rangeDelChunkIter) First() (*keyspan.Span, error) {
-	it.ci, it.i = 0, 0
-	return &it.chunks[0].spans[0], nil
+	it.setChunk(0)
+	it.i = 0
+	return &it.spans[0], nil
 }
 
 // Last implements keyspan.FragmentIterator.
 func (it *rangeDelChunkIter) Last() (*keyspan.Span, error) {
-	it.ci = len(it.chunks) - 1
-	it.i = len(it.chunks[it.ci].spans) - 1
-	return &it.chunks[it.ci].spans[it.i], nil
+	it.setChunk(len(it.chunks) - 1)
+	it.i = len(it.spans) - 1
+	return &it.spans[it.i], nil
 }
 
 // Next implements keyspan.FragmentIterator.
 func (it *rangeDelChunkIter) Next() (*keyspan.Span, error) {
-	switch {
-	case it.ci >= len(it.chunks):
-		return nil, nil
-	case it.ci < 0:
-		it.ci, it.i = 0, 0
-	case it.i+1 < len(it.chunks[it.ci].spans):
-		it.i++
-	default:
-		it.ci, it.i = it.ci+1, 0
-		if it.ci == len(it.chunks) {
-			return nil, nil
-		}
+	// Before the first span and after the last, it.spans is empty.
+	if i := it.i + 1; uint(i) < uint(len(it.spans)) {
+		it.i = i
+		return &it.spans[i], nil
 	}
-	return &it.chunks[it.ci].spans[it.i], nil
+	return it.nextChunk()
+}
+
+// nextChunk is Next when the current span is the last of its chunk, or the
+// iterator is before the first span or after the last. It isn't inlined, so
+// that Next's path within a chunk stays short.
+//
+//go:noinline
+func (it *rangeDelChunkIter) nextChunk() (*keyspan.Span, error) {
+	if it.ci >= len(it.chunks) {
+		return nil, nil
+	}
+	it.setChunk(it.ci + 1)
+	if it.spans == nil {
+		return nil, nil
+	}
+	it.i = 0
+	return &it.spans[0], nil
 }
 
 // Prev implements keyspan.FragmentIterator.
 func (it *rangeDelChunkIter) Prev() (*keyspan.Span, error) {
+	// Before the first span and after the last, it.spans is empty.
+	if i := it.i - 1; uint(i) < uint(len(it.spans)) {
+		it.i = i
+		return &it.spans[i], nil
+	}
+	return it.prevChunk()
+}
+
+// prevChunk is Prev when the current span is the first of its chunk, or the
+// iterator is before the first span or after the last.
+func (it *rangeDelChunkIter) prevChunk() (*keyspan.Span, error) {
 	switch {
 	case it.ci < 0:
 		return nil, nil
 	case it.ci >= len(it.chunks):
 		return it.Last()
-	case it.i > 0:
-		it.i--
-	default:
-		it.ci--
-		if it.ci < 0 {
-			return nil, nil
-		}
-		it.i = len(it.chunks[it.ci].spans) - 1
 	}
-	return &it.chunks[it.ci].spans[it.i], nil
+	it.setChunk(it.ci - 1)
+	if it.spans == nil {
+		return nil, nil
+	}
+	it.i = len(it.spans) - 1
+	return &it.spans[it.i], nil
 }
 
 // SetContext implements keyspan.FragmentIterator.
