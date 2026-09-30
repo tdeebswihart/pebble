@@ -682,29 +682,43 @@ func benchmarkRangeDelIterate(b *testing.B, entries, deleted int, snapshotCompac
 
 // BenchmarkGetNonOverlappingDeleteRange measures point Gets that don't overlap
 // the memtable's range deletes. The invalidated variant writes a range delete
-// before each Get, invalidating the fragment cache.
+// before each Get. With incremental=false, that range delete invalidates the
+// fragment cache, which the Get then rebuilds. With incremental=true,
+// Options.Experimental.IncrementalRangeDelFragments is set, and the range
+// delete is spliced into the memtable's fragments as its batch is applied.
 func BenchmarkGetNonOverlappingDeleteRange(b *testing.B) {
 	for _, numDels := range []int{10, 100, 1000, 10000} {
 		b.Run(fmt.Sprintf("dels=%d", numDels), func(b *testing.B) {
 			for _, mode := range []string{"cached", "invalidated"} {
 				b.Run(mode, func(b *testing.B) {
-					benchGetNonOverlappingDeleteRange(b, numDels, mode == "invalidated")
+					for _, incremental := range []bool{false, true} {
+						b.Run(fmt.Sprintf("incremental=%t", incremental), func(b *testing.B) {
+							benchGetNonOverlappingDeleteRange(
+								b, numDels, mode == "invalidated", incremental)
+						})
+					}
 				})
 			}
 		})
 	}
 }
 
-func benchGetNonOverlappingDeleteRange(b *testing.B, numDels int, invalidate bool) {
-	d, err := Open("", &Options{
+func benchGetNonOverlappingDeleteRange(b *testing.B, numDels int, invalidate, incremental bool) {
+	opts := &Options{
 		FS:           vfs.NewMem(),
 		MemTableSize: 256 << 20, // large enough to keep everything in memtable
 		Logger:       testutils.Logger{T: b},
-	})
+	}
+	opts.Experimental.IncrementalRangeDelFragments = func() bool { return incremental }
+	d, err := Open("", opts)
 	if err != nil {
 		b.Fatal(err)
 	}
 	defer func() { _ = d.Close() }()
+	d.mu.Lock()
+	memIncremental := d.mu.mem.mutable.incrementalRangeDels
+	d.mu.Unlock()
+	require.Equal(b, incremental, memIncremental)
 
 	for i := 0; i < numDels; i++ {
 		from := fmt.Appendf(nil, "d/%09d/a", i)
