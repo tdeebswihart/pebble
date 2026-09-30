@@ -726,8 +726,12 @@ type rangeDelChunk struct {
 // into the fragments, and publishes the result.
 func (f *rangeDelFragments) add(tombstones []rangeDelTombstone) {
 	f.stats.invalidated()
+	// With stats, the wait for the lock costs one extra clock read.
+	var lockStart, start crtime.Mono
+	if f.stats != nil {
+		lockStart = crtime.NowMono()
+	}
 	f.mu.Lock()
-	var start crtime.Mono
 	if f.stats != nil {
 		start = crtime.NowMono()
 	}
@@ -771,7 +775,7 @@ func (f *rangeDelFragments) add(tombstones []rangeDelTombstone) {
 		checkRangeDelFragments(f.skl, f.cmp, f.formatKey, v, f.mu.count)
 	}
 	f.mu.Unlock()
-	f.stats.batchSpliced(elapsed, n)
+	f.stats.batchSpliced(start.Sub(lockStart), elapsed, len(tombstones), n)
 }
 
 // addDeferred records that the caller added n range deletions to skl without
@@ -1281,7 +1285,9 @@ type keySpanCacheStats struct {
 	rebuildFragments       prometheus.Histogram
 	concurrentRebuilds     prometheus.Histogram
 	spliceDuration         prometheus.Histogram
+	spliceLockWait         prometheus.Histogram
 	spliceFragmentsTouched prometheus.Histogram
+	spliceBatchTombstones  prometheus.Histogram
 	spliceVersionFragments prometheus.Histogram
 
 	invalidations atomic.Uint64
@@ -1309,7 +1315,13 @@ func newKeySpanCacheStats() *keySpanCacheStats {
 		spliceDuration: prometheus.NewHistogram(prometheus.HistogramOpts{
 			Buckets: rangeDelCacheDurationBuckets,
 		}),
+		spliceLockWait: prometheus.NewHistogram(prometheus.HistogramOpts{
+			Buckets: rangeDelCacheDurationBuckets,
+		}),
 		spliceFragmentsTouched: prometheus.NewHistogram(prometheus.HistogramOpts{
+			Buckets: rangeDelCacheCountBuckets,
+		}),
+		spliceBatchTombstones: prometheus.NewHistogram(prometheus.HistogramOpts{
 			Buckets: rangeDelCacheCountBuckets,
 		}),
 		spliceVersionFragments: prometheus.NewHistogram(prometheus.HistogramOpts{
@@ -1328,13 +1340,16 @@ func (s *keySpanCacheStats) tombstoneSpliced(fragmentsTouched int) {
 }
 
 // batchSpliced records that splicing a batch's range deletions into
-// rangeDelFragments took d, not counting the wait for the lock, and left
-// numFragments fragments.
-func (s *keySpanCacheStats) batchSpliced(d time.Duration, numFragments int) {
+// rangeDelFragments waited lockWait for the lock and then took d, and that the
+// batch held the given number of range deletions and left numFragments
+// fragments.
+func (s *keySpanCacheStats) batchSpliced(lockWait, d time.Duration, tombstones, numFragments int) {
 	if s == nil {
 		return
 	}
+	s.spliceLockWait.Observe(float64(lockWait))
 	s.spliceDuration.Observe(float64(d))
+	s.spliceBatchTombstones.Observe(float64(tombstones))
 	s.spliceVersionFragments.Observe(float64(numFragments))
 }
 
@@ -1403,7 +1418,9 @@ func (s *keySpanCacheStats) metrics() MemTableRangeDelCacheMetrics {
 		RebuildFragments:       s.rebuildFragments,
 		ConcurrentRebuilds:     s.concurrentRebuilds,
 		SpliceDuration:         s.spliceDuration,
+		SpliceLockWait:         s.spliceLockWait,
 		SpliceFragmentsTouched: s.spliceFragmentsTouched,
+		SpliceBatchTombstones:  s.spliceBatchTombstones,
 		SpliceVersionFragments: s.spliceVersionFragments,
 		Invalidations:          s.invalidations.Load(),
 	}

@@ -610,12 +610,22 @@ type MemTableRangeDelCacheMetrics struct {
 	// splicing the batch's range deletions into the cache, not counting the
 	// wait for other batches' splices.
 	SpliceDuration prometheus.Histogram
+	// SpliceLockWait records, for each batch that SpliceDuration records, the
+	// time in nanoseconds the batch waited for other batches' splices into the
+	// same memtable's cache to finish before its own could start. Batches
+	// applied concurrently to one memtable splice one at a time.
+	SpliceLockWait prometheus.Histogram
 	// SpliceFragmentsTouched records, for each non-empty range deletion spliced
 	// into the cache, the number of fragments the splice wrote rather than
 	// copied from the previous version: the fragments it covers, gaps between
 	// them, and the parts of a fragment it splits. The other fragments of the
 	// chunks it overlaps cost a copy each.
 	SpliceFragmentsTouched prometheus.Histogram
+	// SpliceBatchTombstones records, for each batch that SpliceDuration
+	// records, the number of range deletions in the batch, including empty ones
+	// that the splice skips. Each batch copies the chunk index once, however
+	// many range deletions it holds.
+	SpliceBatchTombstones prometheus.Histogram
 	// SpliceVersionFragments records, for each batch that SpliceDuration
 	// records, the number of fragments in the version of the cache that the
 	// batch's splices produced. The cache holds its fragments in chunks of

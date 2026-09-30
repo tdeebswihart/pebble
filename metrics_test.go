@@ -604,7 +604,8 @@ func TestMetricsMemTableRangeDelCache(t *testing.T) {
 			}
 			if incremental {
 				want = rangeDelCacheSamples{
-					invalidations: 1, splices: 1, versionFragmentsSum: 1, touched: 1, touchedSum: 1,
+					invalidations: 1, splices: 1, batchTombstonesSum: 1, versionFragmentsSum: 1,
+					touched: 1, touchedSum: 1,
 				}
 			}
 			require.Equal(t, want, readRangeDelCacheSamples(t, d.Metrics().MemTableRangeDelCache))

@@ -449,8 +449,9 @@ type rangeDelCacheSamples struct {
 	fragmentsSum   float64
 	concurrencySum float64
 	// splices is the sample count of SpliceDuration, which must equal that of
-	// SpliceVersionFragments.
+	// SpliceLockWait, SpliceBatchTombstones and SpliceVersionFragments.
 	splices             uint64
+	batchTombstonesSum  float64
 	versionFragmentsSum float64
 	// touched and touchedSum are the sample count and sum of
 	// SpliceFragmentsTouched.
@@ -471,6 +472,10 @@ func readRangeDelCacheSamples(t testing.TB, m MemTableRangeDelCacheMetrics) rang
 	n, s.concurrencySum = histogramSamples(t, m.ConcurrentRebuilds)
 	require.Equal(t, s.rebuilds, n)
 	s.splices, _ = histogramSamples(t, m.SpliceDuration)
+	n, _ = histogramSamples(t, m.SpliceLockWait)
+	require.Equal(t, s.splices, n)
+	n, s.batchTombstonesSum = histogramSamples(t, m.SpliceBatchTombstones)
+	require.Equal(t, s.splices, n)
 	n, s.versionFragmentsSum = histogramSamples(t, m.SpliceVersionFragments)
 	require.Equal(t, s.splices, n)
 	s.touched, s.touchedSum = histogramSamples(t, m.SpliceFragmentsTouched)
@@ -620,7 +625,8 @@ func TestMemTableRangeDelSpliceStats(t *testing.T) {
 	// fragment and leaving a version of one fragment.
 	apply(func(b *Batch) { require.NoError(t, b.DeleteRange([]byte("a"), []byte("c"), nil)) })
 	afterFirst := rangeDelCacheSamples{
-		invalidations: 1, splices: 1, versionFragmentsSum: 1, touched: 1, touchedSum: 1,
+		invalidations: 1, splices: 1, batchTombstonesSum: 1, versionFragmentsSum: 1, touched: 1,
+		touchedSum: 1,
 	}
 	require.Equal(t, afterFirst, samples())
 
@@ -653,7 +659,8 @@ func TestMemTableRangeDelSpliceStats(t *testing.T) {
 	require.Equal(t, uint64(2), samples().invalidations)
 	require.Equal(t, 4, read())
 	require.Equal(t, rangeDelCacheSamples{
-		invalidations: 2, splices: 2, versionFragmentsSum: 1 + 4, touched: 3, touchedSum: 1 + 3 + 2,
+		invalidations: 2, splices: 2, batchTombstonesSum: 1 + 2, versionFragmentsSum: 1 + 4,
+		touched: 3, touchedSum: 1 + 3 + 2,
 	}, samples())
 
 	// Each batch is spliced as it's applied, so several between reads are
@@ -664,13 +671,56 @@ func TestMemTableRangeDelSpliceStats(t *testing.T) {
 	require.Equal(t, 6, read())
 	require.Equal(t, 6, read())
 	require.Equal(t, rangeDelCacheSamples{
-		invalidations: 4, splices: 4, versionFragmentsSum: 1 + 4 + 5 + 6, touched: 5,
-		touchedSum: 1 + 3 + 2 + 1 + 1,
+		invalidations: 4, splices: 4, batchTombstonesSum: 1 + 2 + 1 + 1,
+		versionFragmentsSum: 1 + 4 + 5 + 6, touched: 5, touchedSum: 1 + 3 + 2 + 1 + 1,
 	}, samples())
 
 	// Nothing above rebuilt the fragments or waited on a rebuild.
 	require.Equal(t, uint64(0), samples().rebuilds)
 	require.Equal(t, uint64(0), samples().readerWaits)
+}
+
+// TestMemTableRangeDelSpliceLockWait holds the lock that serializes a
+// memtable's splices while a batch is applied, and checks that SpliceLockWait
+// records the batch's wait for it and SpliceDuration doesn't, and that
+// SpliceBatchTombstones counts the batch's range deletions, including an empty
+// one.
+func TestMemTableRangeDelSpliceLockWait(t *testing.T) {
+	defer leaktest.AfterTest(t)()
+	stats := newKeySpanCacheStats()
+	m := newMemTable(memTableOptions{Options: incrementalRangeDelOptions(true), rangeDelCacheStats: stats})
+
+	const hold = 100 * time.Millisecond
+	b := newBatch(nil)
+	defer b.Close()
+	require.NoError(t, b.DeleteRange([]byte("a"), []byte("c"), nil))
+	require.NoError(t, b.DeleteRange([]byte("d"), []byte("d"), nil))
+
+	m.tombstones.mu.Lock()
+	started := make(chan struct{})
+	done := make(chan error)
+	go func() {
+		close(started)
+		done <- m.apply(b, 1)
+	}()
+	<-started
+	time.Sleep(hold)
+	m.tombstones.mu.Unlock()
+	require.NoError(t, <-done)
+
+	metrics := stats.metrics()
+	n, lockWait := histogramSamples(t, metrics.SpliceLockWait)
+	require.Equal(t, uint64(1), n)
+	n, splice := histogramSamples(t, metrics.SpliceDuration)
+	require.Equal(t, uint64(1), n)
+	// The apply reaches the lock soon after it starts, so it waits for most of
+	// hold. Splicing one range deletion takes far less.
+	require.Greater(t, lockWait, float64(hold/2))
+	require.Less(t, splice, float64(hold/2))
+	n, tombstones := histogramSamples(t, metrics.SpliceBatchTombstones)
+	require.Equal(t, uint64(1), n)
+	require.Equal(t, float64(2), tombstones)
+	require.Equal(t, 1, len(m.rangeDelSpans()))
 }
 
 // TestMemTableRangeDelCacheStatsNil checks that a memtable without stats
