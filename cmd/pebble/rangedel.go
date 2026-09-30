@@ -13,6 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/HdrHistogram/hdrhistogram-go"
 	"github.com/cockroachdb/errors"
 	"github.com/cockroachdb/pebble"
 	"github.com/cockroachdb/pebble/cockroachkvs"
@@ -63,6 +64,9 @@ type rangeDelBenchConfig struct {
 	IterFrac float64
 	// DBOptions is dbOptionsDefault or dbOptionsProdWriteHeavy.
 	DBOptions string
+	// IncrementalRangeDelFragments turns on
+	// Options.Experimental.IncrementalRangeDelFragments.
+	IncrementalRangeDelFragments bool
 }
 
 // defaultRangeDelConfig returns defaults approximating a read-heavy workload
@@ -87,7 +91,8 @@ func defaultRangeDelConfig() rangeDelBenchConfig {
 // legacyWorkload returns true if the config reproduces the original benchmark,
 // in which case nothing beyond the original output is printed.
 func (c *rangeDelBenchConfig) legacyWorkload() bool {
-	return c.Shape == rangeDelShapeCycle && c.DBOptions == dbOptionsDefault && c.IterFrac < 0
+	return c.Shape == rangeDelShapeCycle && c.DBOptions == dbOptionsDefault && c.IterFrac < 0 &&
+		!c.IncrementalRangeDelFragments
 }
 
 func (c *rangeDelBenchConfig) validate() error {
@@ -174,6 +179,11 @@ func init() {
 			"production configuration: 10s range-delete flush delay, 256 MiB memtables, "+
 			"32 KiB blocks, 10-bit bloom filters, fastest compression; the comparer and "+
 			"key schema stay the benchmark's)")
+	f.BoolVar(&rangeDelConfig.IncrementalRangeDelFragments, "incremental-rangedel-fragments",
+		rangeDelConfig.IncrementalRangeDelFragments,
+		"turn on Options.Experimental.IncrementalRangeDelFragments, so memtables splice range "+
+			"deletions into their fragments as batches are applied instead of rebuilding them on "+
+			"the next read")
 }
 
 func runRangeDelCmd(cmd *cobra.Command, args []string) error {
@@ -185,14 +195,21 @@ func runRangeDel(dir string, cfg *rangeDelBenchConfig) error {
 	if err := cfg.validate(); err != nil {
 		return err
 	}
-	if cfg.DBOptions == dbOptionsProdWriteHeavy {
-		dbOptionsHook = applyProdWriteHeavyDBOptions
+	dbOptionsHook = func(opts *pebble.Options) {
+		if cfg.DBOptions == dbOptionsProdWriteHeavy {
+			applyProdWriteHeavyDBOptions(opts)
+		}
+		if cfg.IncrementalRangeDelFragments {
+			opts.Experimental.IncrementalRangeDelFragments = func() bool { return true }
+		}
 	}
 	if !cfg.legacyWorkload() {
 		fmt.Printf("rangedel: shape=%s queues=%d overlap-frac=%v rangedels-per-batch=%d "+
-			"sets-per-batch=%d iter-frac=%v db-options=%s gomaxprocs=%d\n",
+			"sets-per-batch=%d iter-frac=%v db-options=%s incremental-rangedel-fragments=%t "+
+			"gomaxprocs=%d\n",
 			cfg.Shape, cfg.Queues, cfg.OverlapFrac, cfg.RangeDelsPerBatch,
-			cfg.SetsPerBatch, cfg.IterFrac, cfg.DBOptions, runtime.GOMAXPROCS(0))
+			cfg.SetsPerBatch, cfg.IterFrac, cfg.DBOptions, cfg.IncrementalRangeDelFragments,
+			runtime.GOMAXPROCS(0))
 	}
 
 	var reads, writes atomic.Uint64
@@ -200,6 +217,9 @@ func runRangeDel(dir string, cfg *rangeDelBenchConfig) error {
 	var benchDB *pebble.DB
 	reg := newHistogramRegistry()
 	readLatency := reg.Register("read")
+	// The writers' commit latencies are kept apart from the read latencies, so
+	// that the per-tick output, which reports the read latencies, is unchanged.
+	commits := newCommitLatencies()
 
 	// Reads (Gets and scans) and point Sets target "r/*"; range deletions
 	// target "d/*". Reads do not overlap with deletion ranges. All indices
@@ -230,7 +250,7 @@ func runRangeDel(dir string, cfg *rangeDelBenchConfig) error {
 					}
 					var uw *uniqueWriter
 					if cfg.Shape == rangeDelShapeUnique {
-						uw = newUniqueWriter(pd, cfg, w, &counts)
+						uw = newUniqueWriter(pd, cfg, w, &counts, commits)
 					}
 					for i := uint64(0); ; i++ {
 						if ticker != nil {
@@ -247,16 +267,20 @@ func runRangeDel(dir string, cfg *rangeDelBenchConfig) error {
 						if i%2 == 0 {
 							delFrom := cockroachkvs.EncodeMVCCKey(nil, fmt.Appendf(nil, "d/%d/a", slot), 0, 0)
 							delTo := cockroachkvs.EncodeMVCCKey(nil, fmt.Appendf(nil, "d/%d/z", slot), 0, 0)
+							start := time.Now()
 							if err := pd.DeleteRange(delFrom, delTo, pebble.NoSync); err != nil {
 								log.Fatalf("rangedel writer %d: DeleteRange: %v", w, err)
 							}
+							commits.record(start, true /* rangeDel */)
 							counts.batches.Add(1)
 							counts.rangeDels.Add(1)
 						} else {
 							setKey := cockroachkvs.EncodeMVCCKey(nil, fmt.Appendf(nil, "r/%04d", slot), 0, 0)
+							start := time.Now()
 							if err := pd.Set(setKey, []byte("v"), pebble.NoSync); err != nil {
 								log.Fatalf("rangedel writer %d: Set: %v", w, err)
 							}
+							commits.record(start, false /* rangeDel */)
 							counts.sets.Add(1)
 						}
 						writes.Add(1)
@@ -350,6 +374,22 @@ func runRangeDel(dir string, cfg *rangeDelBenchConfig) error {
 				)
 			})
 			if !cfg.legacyWorkload() {
+				// The writers' commit latencies, over the whole run: every commit,
+				// and the commits of batches that contain a DeleteRange.
+				fmt.Println("\n____elapsed_commits_of____commits___commits/s___p50(µs)___p95(µs)" +
+					"___p99(µs)___pMax(µs)")
+				commits.forEach(func(name string, h *hdrhistogram.Histogram) {
+					fmt.Printf("%9.1fs %-11s %10d %11.1f %9.1f %9.1f %9.1f %10.1f\n",
+						elapsed.Seconds(),
+						name,
+						h.TotalCount(),
+						float64(h.TotalCount())/elapsed.Seconds(),
+						usFromNs(h.ValueAtQuantile(50)),
+						usFromNs(h.ValueAtQuantile(95)),
+						usFromNs(h.ValueAtQuantile(99)),
+						usFromNs(h.ValueAtQuantile(100)),
+					)
+				})
 				fmt.Printf("\nrangedel_summary: elapsed=%.1fs rangedel_batches=%d "+
 					"rangedel_batches/s=%.1f rangedel_ops=%d overlapping_rangedel_ops=%d "+
 					"point_sets=%d flushes=%d\n",
@@ -383,6 +423,42 @@ type rangeDelCounters struct {
 	sets atomic.Uint64
 }
 
+// commitLatencies records the latencies of the writers' commits: every
+// commit in all, and the commits of batches that contain a DeleteRange in
+// rangeDel too. Commits often take tens of microseconds, so the histograms
+// resolve 1ns and keep two significant digits, rather than the 10µs floor and
+// single digit of the read latency histograms.
+type commitLatencies struct {
+	mu            sync.Mutex
+	all, rangeDel *hdrhistogram.Histogram
+}
+
+func newCommitLatencies() *commitLatencies {
+	newHist := func() *hdrhistogram.Histogram {
+		return hdrhistogram.New(1, maxLatency.Nanoseconds(), 2)
+	}
+	return &commitLatencies{all: newHist(), rangeDel: newHist()}
+}
+
+// record records a commit that began at start and has just returned.
+func (c *commitLatencies) record(start time.Time, rangeDel bool) {
+	d := min(time.Since(start).Nanoseconds(), maxLatency.Nanoseconds())
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	_ = c.all.RecordValue(d)
+	if rangeDel {
+		_ = c.rangeDel.RecordValue(d)
+	}
+}
+
+// forEach calls fn with each histogram and its name.
+func (c *commitLatencies) forEach(fn func(name string, h *hdrhistogram.Histogram)) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	fn("all", c.all)
+	fn("rangedel", c.rangeDel)
+}
+
 // uniqueWriter issues the writes of rangeDelShapeUnique on behalf of one
 // writer goroutine. Writer w owns the queues q where q % Writers == w. Each
 // queue is a key prefix "d/q<queue>/" with an ack level that only advances.
@@ -391,10 +467,11 @@ type rangeDelCounters struct {
 // deletes everything below a new ack level. Each DeleteRange picks a random
 // queue, so the tombstones arrive scattered across the key space.
 type uniqueWriter struct {
-	db     *pebble.DB
-	cfg    *rangeDelBenchConfig
-	counts *rangeDelCounters
-	rng    *rand.Rand
+	db      *pebble.DB
+	cfg     *rangeDelBenchConfig
+	counts  *rangeDelCounters
+	commits *commitLatencies
+	rng     *rand.Rand
 	// queues holds the ids of the queues that this writer owns, and acks holds
 	// their ack levels.
 	queues []int
@@ -404,13 +481,18 @@ type uniqueWriter struct {
 }
 
 func newUniqueWriter(
-	db *pebble.DB, cfg *rangeDelBenchConfig, writer int, counts *rangeDelCounters,
+	db *pebble.DB,
+	cfg *rangeDelBenchConfig,
+	writer int,
+	counts *rangeDelCounters,
+	commits *commitLatencies,
 ) *uniqueWriter {
 	uw := &uniqueWriter{
-		db:     db,
-		cfg:    cfg,
-		counts: counts,
-		rng:    rand.New(rand.NewPCG(rangeDelSeed, uint64(writer))),
+		db:      db,
+		cfg:     cfg,
+		counts:  counts,
+		commits: commits,
+		rng:     rand.New(rand.NewPCG(rangeDelSeed, uint64(writer))),
 	}
 	for q := writer; q < cfg.Queues; q += cfg.Writers {
 		uw.queues = append(uw.queues, q)
@@ -430,9 +512,12 @@ func (uw *uniqueWriter) write(i uint64) {
 		// Alternate as the cycle shape does: a batch of only DeleteRanges, then a
 		// lone Set.
 		if i%2 == 1 {
-			if err := uw.db.Set(uw.setKey(), []byte("v"), pebble.NoSync); err != nil {
+			key := uw.setKey()
+			start := time.Now()
+			if err := uw.db.Set(key, []byte("v"), pebble.NoSync); err != nil {
 				log.Fatalf("rangedel writer: Set: %v", err)
 			}
+			uw.commits.record(start, false /* rangeDel */)
 			uw.counts.sets.Add(1)
 			return
 		}
@@ -463,9 +548,11 @@ func (uw *uniqueWriter) write(i uint64) {
 			log.Fatalf("rangedel writer: batch Set: %v", err)
 		}
 	}
+	start := time.Now()
 	if err := b.Commit(pebble.NoSync); err != nil {
 		log.Fatalf("rangedel writer: Commit: %v", err)
 	}
+	uw.commits.record(start, true /* rangeDel */)
 	if err := b.Close(); err != nil {
 		log.Fatalf("rangedel writer: batch Close: %v", err)
 	}
