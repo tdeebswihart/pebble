@@ -561,10 +561,11 @@ type WALMetrics struct {
 // deletions ("tombstones") that memtables keep so that readers do not have to
 // fragment the memtable's range deletions on every read.
 //
-// Every batch that contains a range deletion invalidates the cache. The next
-// reader rebuilds it, and readers that arrive during the rebuild wait for it to
-// finish. The statistics cover all of the DB's memtables. They are only
-// collected for range deletions, not for range keys.
+// Applying a batch that contains a range deletion splices its range deletions
+// into a new version of the cache before the batch becomes visible, so readers
+// never rebuild the cache or wait for it. Batches that contain range deletions
+// splice one at a time. The statistics cover all of the DB's memtables. They
+// are only collected for range deletions, not for range keys.
 //
 // The histograms are cumulative since the DB was opened, and are shared with
 // the DB rather than copied.
@@ -572,26 +573,50 @@ type MemTableRangeDelCacheMetrics struct {
 	// RebuildDuration records the wall time, in nanoseconds, that each rebuild
 	// of the cache took. Only the goroutine that ran the rebuild records a
 	// sample, so the histogram's sample count is the number of rebuilds.
+	//
+	// Range deletions are spliced in as they're applied rather than rebuilt,
+	// so this histogram no longer records any samples, and neither do the other
+	// Rebuild histograms, ReaderWait or ConcurrentRebuilds.
 	RebuildDuration prometheus.Histogram
 	// ReaderWait records the time, in nanoseconds, that readers spent waiting
 	// for a rebuild that another goroutine ran. A sample is recorded by each
 	// reader that reached the rebuild before it was marked complete and did not
-	// run it; readers that find the cache already built record nothing.
+	// run it; readers that find the cache already built record nothing. It no
+	// longer records any samples (see RebuildDuration).
 	ReaderWait prometheus.Histogram
 	// RebuildTombstones records, for each rebuild, the number of range
 	// deletions that the memtable held when the cache being rebuilt was
-	// invalidated. The unit is range deletions (before fragmentation).
+	// invalidated. The unit is range deletions (before fragmentation). It no
+	// longer records any samples (see RebuildDuration).
 	RebuildTombstones prometheus.Histogram
 	// RebuildFragments records, for each rebuild, the number of fragmented spans
-	// that the rebuild produced.
+	// that the rebuild produced. It no longer records any samples (see
+	// RebuildDuration).
 	RebuildFragments prometheus.Histogram
 	// ConcurrentRebuilds records, for each rebuild, the number of rebuilds in
 	// flight when it started, including itself. Rebuilds are counted across all
-	// of the DB's memtables. The unit is rebuilds.
+	// of the DB's memtables. The unit is rebuilds. It no longer records any
+	// samples (see RebuildDuration).
 	ConcurrentRebuilds prometheus.Histogram
+	// SpliceDuration records, for each applied batch that contains a range
+	// deletion, the time in nanoseconds spent splicing the batch's range
+	// deletions into the cache, not counting the wait for other batches'
+	// splices. Its sample count equals Invalidations.
+	SpliceDuration prometheus.Histogram
+	// SpliceFragmentsTouched records, for each non-empty range deletion spliced
+	// into the cache, the number of fragments the splice wrote rather than
+	// copied from the previous version: the fragments it covers, gaps between
+	// them, and the parts of a fragment it splits. The remaining fragments cost
+	// a copy each.
+	SpliceFragmentsTouched prometheus.Histogram
+	// SpliceVersionFragments records, for each applied batch that contains a
+	// range deletion, the number of fragments in the version of the cache that
+	// the batch's splices produced. A splice copies every fragment, so this is
+	// what the splice's cost grows with.
+	SpliceVersionFragments prometheus.Histogram
 	// Invalidations is the cumulative number of times a memtable's cache of
-	// fragmented range deletions was invalidated, which is once per applied batch
-	// that contains a range deletion.
+	// fragmented range deletions was replaced by a new version, which is once
+	// per applied batch that contains a range deletion.
 	Invalidations uint64
 }
 

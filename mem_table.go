@@ -10,11 +10,13 @@ import (
 	"os"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/cockroachdb/crlib/crtime"
 	"github.com/cockroachdb/errors"
 	"github.com/cockroachdb/pebble/internal/arenaskl"
 	"github.com/cockroachdb/pebble/internal/base"
+	"github.com/cockroachdb/pebble/internal/invariants"
 	"github.com/cockroachdb/pebble/internal/keyspan"
 	"github.com/cockroachdb/pebble/internal/manual"
 	"github.com/cockroachdb/pebble/internal/rangedel"
@@ -83,7 +85,7 @@ type memTable struct {
 	// applied. The memtable cannot be flushed to disk until the writer refs
 	// drops to zero.
 	writerRefs atomic.Int32
-	tombstones keySpanCache
+	tombstones rangeDelFragments
 	rangeKeys  keySpanCache
 	// The current logSeqNum at the time the memtable was created. This is
 	// guaranteed to be less than or equal to any seqnum stored in the memtable.
@@ -146,13 +148,11 @@ func (m *memTable) init(opts memTableOptions) {
 		releaseAccountingReservation: opts.releaseAccountingReservation,
 	}
 	m.writerRefs.Store(1)
-	m.tombstones = keySpanCache{
-		cmp:            m.cmp,
-		formatKey:      m.formatKey,
-		skl:            &m.rangeDelSkl,
-		constructSpan:  rangeDelConstructSpan,
-		stats:          opts.rangeDelCacheStats,
-		bypassDisjoint: true,
+	m.tombstones = rangeDelFragments{
+		cmp:       m.cmp,
+		formatKey: m.formatKey,
+		skl:       &m.rangeDelSkl,
+		stats:     opts.rangeDelCacheStats,
 	}
 	m.rangeKeys = keySpanCache{
 		cmp:           m.cmp,
@@ -218,7 +218,18 @@ func (m *memTable) apply(batch *Batch, seqNum base.SeqNum) error {
 	}
 
 	var ins arenaskl.Inserter
-	var tombstoneCount, rangeKeyCount uint32
+	var rangeKeyCount uint32
+	// rangeDels collects the batch's range deletions as they're added to
+	// rangeDelSkl. They're spliced into m.tombstones before apply returns, even
+	// if it returns an error, so that the fragments hold every range deletion in
+	// rangeDelSkl once the applies that added them have returned.
+	var rangeDelsBuf [4]rangeDelTombstone
+	rangeDels := rangeDelsBuf[:0]
+	defer func() {
+		if len(rangeDels) > 0 {
+			m.tombstones.add(rangeDels)
+		}
+	}()
 	startSeqNum := seqNum
 	for r := batch.Reader(); ; seqNum++ {
 		kind, ukey, value, ok, err := r.Next()
@@ -231,8 +242,14 @@ func (m *memTable) apply(batch *Batch, seqNum base.SeqNum) error {
 		ikey := base.MakeInternalKey(ukey, seqNum, kind)
 		switch kind {
 		case InternalKeyKindRangeDelete:
-			err = m.rangeDelSkl.Add(ikey, value)
-			tombstoneCount++
+			// The batch's buffer may be reused once the commit completes, so
+			// the fragments' bounds must point at the copies in the arena.
+			var start, end []byte
+			start, end, err = m.rangeDelSkl.AddAndGetSlices(ikey, value)
+			if err == nil {
+				rangeDels = append(rangeDels,
+					rangeDelTombstone{start: start, end: end, trailer: ikey.Trailer})
+			}
 		case InternalKeyKindRangeKeySet, InternalKeyKindRangeKeyUnset, InternalKeyKindRangeKeyDelete:
 			err = m.rangeKeySkl.Add(ikey, value)
 			rangeKeyCount++
@@ -252,9 +269,6 @@ func (m *memTable) apply(batch *Batch, seqNum base.SeqNum) error {
 	if seqNum != startSeqNum+base.SeqNum(batch.Count()) {
 		return base.CorruptionErrorf("pebble: inconsistent batch count: %d vs %d",
 			errors.Safe(seqNum), errors.Safe(startSeqNum+base.SeqNum(batch.Count())))
-	}
-	if tombstoneCount != 0 {
-		m.tombstones.invalidate(tombstoneCount)
 	}
 	if rangeKeyCount != 0 {
 		m.rangeKeys.invalidate(rangeKeyCount)
@@ -348,7 +362,8 @@ func (m *memTable) computePossibleOverlaps(fn func(bounded) shouldContinue, boun
 // fragmented state of the memtable's keys of a given kind at the moment while
 // there existed `count` keys of that kind in the memtable.
 //
-// It's currently only used to contain fragmented range deletion tombstones.
+// It's currently only used to contain fragmented range keys. Range deletions
+// are kept up to date as they're applied by rangeDelFragments instead.
 type keySpanFrags struct {
 	count uint32
 	once  sync.Once
@@ -514,11 +529,6 @@ type keySpanCache struct {
 	// stats, if non-nil, records invalidations and rebuilds of the cache. It is
 	// owned by the DB and shared by the caches of all its memtables.
 	stats *keySpanCacheStats
-	// bypassDisjoint is passed to keySpanFrags.get. It's set only for range
-	// deletions: a RangeKeySet decodes to several keys that share a trailer,
-	// and the Fragmenter sorts keys with an unstable sort, so emitting a lone
-	// range key span as-is could change the order of its keys.
-	bypassDisjoint bool
 }
 
 // Invalidate the current set of cached spans, indicating the number of
@@ -551,20 +561,297 @@ func (c *keySpanCache) get() []keyspan.Span {
 	if frags == nil {
 		return nil
 	}
-	return frags.get(c.skl, c.cmp, c.formatKey, c.constructSpan, c.bypassDisjoint, c.stats)
+	// A RangeKeySet decodes to several keys that share a trailer, and the
+	// Fragmenter sorts keys with an unstable sort, so emitting a lone range key
+	// span as-is could change the order of its keys.
+	return frags.get(c.skl, c.cmp, c.formatKey, c.constructSpan, false /* bypassDisjoint */, c.stats)
+}
+
+// rangeDelTombstone is a range deletion [start, end)#trailer that apply has
+// added to a memtable's rangeDelSkl. start and end point into the memtable's
+// arena.
+type rangeDelTombstone struct {
+	start, end []byte
+	trailer    base.InternalKeyTrailer
+}
+
+// rangeDelFragments holds a memtable's fragmented range deletions, and keeps
+// them up to date as batches are applied rather than rebuilding them on a read.
+//
+// The fragments are an immutable rangeDelVersion behind an atomic pointer. A
+// reader loads the pointer and iterates over the version's spans. memTable.apply
+// adds a batch's range deletions to rangeDelSkl, then, holding mu, splices each
+// of them into a new version, which it publishes before it returns. The commit
+// pipeline publishes a batch's sequence numbers only after apply returns, so a
+// reader that can see a batch loads a version that holds the batch's range
+// deletions. Writers serialize on mu, so each version builds on the one before,
+// even though batches may reach mu out of sequence number order. Readers never
+// take mu.
+type rangeDelFragments struct {
+	cmp       Compare
+	formatKey base.FormatKey
+	// skl is the memtable's rangeDelSkl. It's only read by the invariants
+	// check in add.
+	skl *arenaskl.Skiplist
+	// stats, if non-nil, records the splices. It is owned by the DB and shared
+	// by all its memtables.
+	stats *keySpanCacheStats
+	// version holds the current fragments. It's nil until the first non-empty
+	// range deletion is spliced in.
+	version atomic.Pointer[rangeDelVersion]
+	mu      struct {
+		sync.Mutex
+		// count is the number of range deletions passed to add, including the
+		// empty ones that it dropped.
+		count int
+	}
+}
+
+// A rangeDelVersion is a set of fragmented range deletions: spans that are
+// sorted by start key and don't overlap, each holding keys sorted by trailer
+// descending. Nothing in a published version is ever modified, since readers
+// may hold pointers to its spans (see keyspan.Iter). A later version shares the
+// Keys slices of the spans it copies unchanged. Neither spans nor any span's
+// Keys has spare capacity, so an append by a reader can't write into memory
+// that another span shares.
+type rangeDelVersion struct {
+	spans []keyspan.Span
+}
+
+// get returns the current fragments, or nil if there are none.
+func (f *rangeDelFragments) get() []keyspan.Span {
+	if v := f.version.Load(); v != nil {
+		return v.spans
+	}
+	return nil
+}
+
+// add splices a batch's range deletions, which the caller has added to skl,
+// into the fragments, and publishes the result.
+func (f *rangeDelFragments) add(tombstones []rangeDelTombstone) {
+	f.stats.invalidated()
+	f.mu.Lock()
+	var start crtime.Mono
+	if f.stats != nil {
+		start = crtime.NowMono()
+	}
+	v := f.version.Load()
+	var spans []keyspan.Span
+	if v != nil {
+		spans = v.spans
+	}
+	changed := false
+	for i := range tombstones {
+		var touched int
+		spans, touched = spliceRangeDel(f.cmp, spans, tombstones[i])
+		if touched > 0 {
+			changed = true
+			f.stats.tombstoneSpliced(touched)
+		}
+	}
+	if changed {
+		f.version.Store(&rangeDelVersion{spans: spans})
+	}
+	f.mu.count += len(tombstones)
+	var elapsed time.Duration
+	if f.stats != nil {
+		elapsed = start.Elapsed()
+	}
+	if invariants.Enabled {
+		checkRangeDelFragments(f.skl, f.cmp, f.formatKey, spans, f.mu.count)
+	}
+	f.mu.Unlock()
+	f.stats.batchSpliced(elapsed, len(spans))
+}
+
+// spliceRangeDel returns the fragments of spans and the range deletion t
+// together, and the number of the result's fragments that it wrote rather than
+// copied from spans. spans must be fragments as a rangeDelVersion holds them.
+// spans isn't modified. The result shares the Keys of every fragment of spans
+// that t doesn't cover (including the parts of a fragment that t splits), and
+// every Keys slice it allocates, as well as the result, has no spare capacity.
+// If t is empty or inverted, spliceRangeDel returns spans and 0, as a
+// keyspan.Fragmenter drops such a span.
+func spliceRangeDel(
+	cmp Compare, spans []keyspan.Span, t rangeDelTombstone,
+) (_ []keyspan.Span, touched int) {
+	if cmp(t.start, t.end) >= 0 {
+		return spans, 0
+	}
+	// Find i, the first fragment that ends after t.start, and j, the first
+	// fragment that starts at or after t.end. Fragments [i, j) overlap t, and
+	// the others are copied as they are.
+	i, hi := 0, len(spans)
+	for i < hi {
+		h := int(uint(i+hi) >> 1)
+		if cmp(spans[h].End, t.start) <= 0 {
+			i = h + 1
+		} else {
+			hi = h
+		}
+	}
+	j := i
+	hi = len(spans)
+	for j < hi {
+		h := int(uint(j+hi) >> 1)
+		if cmp(spans[h].Start, t.end) < 0 {
+			j = h + 1
+		} else {
+			hi = h
+		}
+	}
+	overlap := spans[i:j]
+
+	// Each overlapping fragment is replaced by at most itself, a gap before it,
+	// and one piece of it before or after t, and a gap may follow the last one.
+	// The keys of each covered part and gap get one new key.
+	numKeys := 2*len(overlap) + 1
+	for k := range overlap {
+		numKeys += len(overlap[k].Keys)
+	}
+	keys := make([]keyspan.Key, numKeys)
+	out := make([]keyspan.Span, i, len(spans)+len(overlap)+2)
+	copy(out, spans[:i])
+
+	newKey := keyspan.Key{Trailer: t.trailer}
+	// pos is the end of the part of t already written.
+	pos := t.start
+	for k := range overlap {
+		s := &overlap[k]
+		coveredStart := s.Start
+		if c := cmp(s.Start, pos); c < 0 {
+			// Only the first overlapping fragment can start before t. Its part
+			// before t keeps its keys.
+			out = append(out, keyspan.Span{Start: s.Start, End: t.start, Keys: s.Keys})
+			coveredStart = t.start
+		} else if c > 0 {
+			// t alone covers the gap before s.
+			keys[0] = newKey
+			out = append(out, keyspan.Span{Start: pos, End: s.Start, Keys: keys[:1:1]})
+			keys = keys[1:]
+		}
+		coveredEnd := s.End
+		endsAfter := cmp(s.End, t.end) > 0
+		if endsAfter {
+			coveredEnd = t.end
+		}
+		n := len(s.Keys) + 1
+		coveredKeys := keys[:n:n]
+		keys = keys[n:]
+		insertRangeDelKey(coveredKeys, s.Keys, newKey)
+		out = append(out, keyspan.Span{Start: coveredStart, End: coveredEnd, Keys: coveredKeys})
+		if endsAfter {
+			// Only the last overlapping fragment can end after t. Its part
+			// after t keeps its keys.
+			out = append(out, keyspan.Span{Start: t.end, End: s.End, Keys: s.Keys})
+		}
+		pos = s.End
+	}
+	if cmp(pos, t.end) < 0 {
+		keys[0] = newKey
+		out = append(out, keyspan.Span{Start: pos, End: t.end, Keys: keys[:1:1]})
+	}
+	touched = len(out) - i
+	out = append(out, spans[j:]...)
+	return out[:len(out):len(out)], touched
+}
+
+// insertRangeDelKey copies keys, which are sorted by trailer descending, into
+// dst with k inserted in trailer order. len(dst) must be len(keys)+1.
+func insertRangeDelKey(dst, keys []keyspan.Key, k keyspan.Key) {
+	// Batches usually reach rangeDelFragments.add in sequence number order, so
+	// k usually goes first.
+	p := 0
+	for p < len(keys) && keys[p].Trailer > k.Trailer {
+		p++
+	}
+	copy(dst, keys[:p])
+	dst[p] = k
+	copy(dst[p+1:], keys[p:])
+}
+
+// maxCheckedRangeDels is the largest number of range deletions a memtable can
+// hold for invariants builds to check its fragments against a full rebuild
+// after every splice.
+const maxCheckedRangeDels = 64
+
+// checkRangeDelFragments panics if spans differ from the fragments of the
+// range deletions in skl. n is the number of range deletions spliced into
+// spans. The check is skipped if n exceeds maxCheckedRangeDels, or if skl
+// doesn't hold exactly n range deletions, as happens while other applies have
+// added range deletions to skl that they haven't spliced yet. Every range
+// deletion spliced into spans was added to skl before this is called, so a skl
+// iteration that finds exactly n of them found those.
+func checkRangeDelFragments(
+	skl *arenaskl.Skiplist, cmp Compare, formatKey base.FormatKey, spans []keyspan.Span, n int,
+) {
+	if n > maxCheckedRangeDels {
+		return
+	}
+	var want []keyspan.Span
+	frag := keyspan.Fragmenter{
+		Cmp:    cmp,
+		Format: formatKey,
+		Emit:   func(s keyspan.Span) { want = append(want, s) },
+	}
+	found := 0
+	it := skl.NewIter(nil, nil)
+	for kv := it.First(); kv != nil && found <= n; kv = it.Next() {
+		found++
+		frag.Add(rangedel.Decode(kv.K, kv.InPlaceValue(), nil))
+	}
+	_ = it.Close()
+	if found != n {
+		return
+	}
+	frag.Finish()
+	if !rangeDelSpansEqual(cmp, want, spans) {
+		panic(errors.AssertionFailedf(
+			"pebble: memtable range deletion fragments differ from a rebuild\nwant: %s\ngot:  %s",
+			want, spans))
+	}
+}
+
+// rangeDelSpansEqual returns whether a and b hold the same fragments: bounds
+// that compare equal, and identical KeysOrder and Keys.
+func rangeDelSpansEqual(cmp Compare, a, b []keyspan.Span) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if cmp(a[i].Start, b[i].Start) != 0 || cmp(a[i].End, b[i].End) != 0 ||
+			a[i].KeysOrder != b[i].KeysOrder || len(a[i].Keys) != len(b[i].Keys) {
+			return false
+		}
+		for k := range a[i].Keys {
+			ka, kb := &a[i].Keys[k], &b[i].Keys[k]
+			if ka.Trailer != kb.Trailer || !bytes.Equal(ka.Suffix, kb.Suffix) ||
+				!bytes.Equal(ka.Value, kb.Value) {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 // keySpanCacheStats records how often keySpanCaches are invalidated and
-// rebuilt, and how long readers wait on a rebuild. A single instance is owned
-// by the DB and shared by the range deletion caches of all its memtables. All
-// methods are safe to call on a nil receiver, in which case they do nothing.
+// rebuilt, how long readers wait on a rebuild, and what splicing range
+// deletions into rangeDelFragments costs. A single instance is owned by the DB
+// and shared by the range deletion fragments of all its memtables. Those
+// splice rather than rebuild, and the range key caches have no stats, so a DB
+// records no rebuilds; only a keySpanFrags.get that is passed the stats does.
+// All methods are safe to call on a nil receiver, in which case they do
+// nothing.
 type keySpanCacheStats struct {
 	// The duration histograms observe float64(time.Duration), i.e. nanoseconds.
-	rebuildDuration    prometheus.Histogram
-	readerWait         prometheus.Histogram
-	rebuildTombstones  prometheus.Histogram
-	rebuildFragments   prometheus.Histogram
-	concurrentRebuilds prometheus.Histogram
+	rebuildDuration        prometheus.Histogram
+	readerWait             prometheus.Histogram
+	rebuildTombstones      prometheus.Histogram
+	rebuildFragments       prometheus.Histogram
+	concurrentRebuilds     prometheus.Histogram
+	spliceDuration         prometheus.Histogram
+	spliceFragmentsTouched prometheus.Histogram
+	spliceVersionFragments prometheus.Histogram
 
 	invalidations atomic.Uint64
 	// rebuildsInFlight is the number of rebuilds currently running.
@@ -588,10 +875,40 @@ func newKeySpanCacheStats() *keySpanCacheStats {
 		concurrentRebuilds: prometheus.NewHistogram(prometheus.HistogramOpts{
 			Buckets: rangeDelCacheConcurrencyBuckets,
 		}),
+		spliceDuration: prometheus.NewHistogram(prometheus.HistogramOpts{
+			Buckets: rangeDelCacheDurationBuckets,
+		}),
+		spliceFragmentsTouched: prometheus.NewHistogram(prometheus.HistogramOpts{
+			Buckets: rangeDelCacheCountBuckets,
+		}),
+		spliceVersionFragments: prometheus.NewHistogram(prometheus.HistogramOpts{
+			Buckets: rangeDelCacheCountBuckets,
+		}),
 	}
 }
 
-// invalidated records a call to keySpanCache.invalidate.
+// tombstoneSpliced records that splicing a range deletion into
+// rangeDelFragments wrote the given number of fragments.
+func (s *keySpanCacheStats) tombstoneSpliced(fragmentsTouched int) {
+	if s == nil {
+		return
+	}
+	s.spliceFragmentsTouched.Observe(float64(fragmentsTouched))
+}
+
+// batchSpliced records that splicing a batch's range deletions into
+// rangeDelFragments took d, not counting the wait for the lock, and left
+// numFragments fragments.
+func (s *keySpanCacheStats) batchSpliced(d time.Duration, numFragments int) {
+	if s == nil {
+		return
+	}
+	s.spliceDuration.Observe(float64(d))
+	s.spliceVersionFragments.Observe(float64(numFragments))
+}
+
+// invalidated records a call to keySpanCache.invalidate, or a batch of range
+// deletions passed to rangeDelFragments.add.
 func (s *keySpanCacheStats) invalidated() {
 	if s == nil {
 		return
@@ -636,11 +953,14 @@ func (s *keySpanCacheStats) metrics() MemTableRangeDelCacheMetrics {
 		return MemTableRangeDelCacheMetrics{}
 	}
 	return MemTableRangeDelCacheMetrics{
-		RebuildDuration:    s.rebuildDuration,
-		ReaderWait:         s.readerWait,
-		RebuildTombstones:  s.rebuildTombstones,
-		RebuildFragments:   s.rebuildFragments,
-		ConcurrentRebuilds: s.concurrentRebuilds,
-		Invalidations:      s.invalidations.Load(),
+		RebuildDuration:        s.rebuildDuration,
+		ReaderWait:             s.readerWait,
+		RebuildTombstones:      s.rebuildTombstones,
+		RebuildFragments:       s.rebuildFragments,
+		ConcurrentRebuilds:     s.concurrentRebuilds,
+		SpliceDuration:         s.spliceDuration,
+		SpliceFragmentsTouched: s.spliceFragmentsTouched,
+		SpliceVersionFragments: s.spliceVersionFragments,
+		Invalidations:          s.invalidations.Load(),
 	}
 }

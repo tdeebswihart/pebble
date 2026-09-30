@@ -365,6 +365,53 @@ func TestSkiplistAdd(t *testing.T) {
 	}
 }
 
+// TestSkiplistAddAndGetSlices checks that AddAndGetSlices returns the stored
+// user key and value, which point into the arena rather than at the arguments.
+func TestSkiplistAddAndGetSlices(t *testing.T) {
+	ikey := func(k []byte, seqNum base.SeqNum) base.InternalKey {
+		return base.MakeInternalKey(k, seqNum, base.InternalKeyKindSet)
+	}
+	l := NewSkiplist(newArena(arenaSize), bytes.Compare)
+	key, value := []byte("apple"), []byte("red")
+	userKey, arenaValue, err := l.AddAndGetSlices(ikey(key, 1), value)
+	require.NoError(t, err)
+	require.Equal(t, "apple", string(userKey))
+	require.Equal(t, "red", string(arenaValue))
+	require.Equal(t, len(userKey), cap(userKey))
+	require.Equal(t, len(arenaValue), cap(arenaValue))
+
+	// The caller may reuse its buffers.
+	copy(key, "xxxxx")
+	copy(value, "xxx")
+	require.Equal(t, "apple", string(userKey))
+	require.Equal(t, "red", string(arenaValue))
+
+	// The slices are the ones an iterator returns.
+	kv := l.NewIter(nil, nil).First()
+	require.NotNil(t, kv)
+	require.Same(t, &kv.K.UserKey[0], &userKey[0])
+	require.Same(t, &kv.InPlaceValue()[0], &arenaValue[0])
+
+	// An empty key and value are stored as empty slices.
+	userKey, arenaValue, err = l.AddAndGetSlices(ikey(nil, 2), nil)
+	require.NoError(t, err)
+	require.Empty(t, userKey)
+	require.Empty(t, arenaValue)
+
+	// Errors return no slices.
+	userKey, arenaValue, err = l.AddAndGetSlices(ikey([]byte("apple"), 1), nil)
+	require.Equal(t, ErrRecordExists, err)
+	require.Nil(t, userKey)
+	require.Nil(t, arenaValue)
+	full := NewSkiplist(newArena(1000), bytes.Compare)
+	for i := 0; err != ErrArenaFull; i++ {
+		userKey, arenaValue, err = full.AddAndGetSlices(makeIntKey(i), makeValue(i))
+		require.True(t, err == nil || err == ErrArenaFull, "%v", err)
+	}
+	require.Nil(t, userKey)
+	require.Nil(t, arenaValue)
+}
+
 // TestConcurrentAdd races between adding same nodes.
 func TestConcurrentAdd(t *testing.T) {
 	for _, inserter := range []bool{false, true} {

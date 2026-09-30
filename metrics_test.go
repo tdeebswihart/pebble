@@ -592,8 +592,10 @@ func TestMetricsMemTableRangeDelCache(t *testing.T) {
 	_, _, err = d.Get([]byte("b"))
 	require.ErrorIs(t, err, ErrNotFound)
 
+	// The DeleteRange was spliced into the cache as it was applied, so the Get
+	// had nothing to rebuild.
 	want := rangeDelCacheSamples{
-		invalidations: 1, rebuilds: 1, tombstonesSum: 1, fragmentsSum: 1, concurrencySum: 1,
+		invalidations: 1, splices: 1, versionFragmentsSum: 1, touched: 1, touchedSum: 1,
 	}
 	require.Equal(t, want, readRangeDelCacheSamples(t, d.Metrics().MemTableRangeDelCache))
 
