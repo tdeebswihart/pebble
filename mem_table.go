@@ -147,11 +147,12 @@ func (m *memTable) init(opts memTableOptions) {
 	}
 	m.writerRefs.Store(1)
 	m.tombstones = keySpanCache{
-		cmp:           m.cmp,
-		formatKey:     m.formatKey,
-		skl:           &m.rangeDelSkl,
-		constructSpan: rangeDelConstructSpan,
-		stats:         opts.rangeDelCacheStats,
+		cmp:            m.cmp,
+		formatKey:      m.formatKey,
+		skl:            &m.rangeDelSkl,
+		constructSpan:  rangeDelConstructSpan,
+		stats:          opts.rangeDelCacheStats,
+		bypassDisjoint: true,
 	}
 	m.rangeKeys = keySpanCache{
 		cmp:           m.cmp,
@@ -373,11 +374,14 @@ func rangeDelConstructSpan(
 // kind and a concurrent reader. The reader can load a keySpanFrags and populate
 // it even though is has been invalidated (i.e. replaced with a newer
 // keySpanFrags).
+//
+// If bypassDisjoint is set, the spans are populated by populateBypassingDisjoint.
 func (f *keySpanFrags) get(
 	skl *arenaskl.Skiplist,
 	cmp Compare,
 	formatKey base.FormatKey,
 	constructSpan constructSpan,
+	bypassDisjoint bool,
 	stats *keySpanCacheStats,
 ) []keyspan.Span {
 	if f.built.Load() {
@@ -391,6 +395,10 @@ func (f *keySpanFrags) get(
 	f.once.Do(func() {
 		ran = true
 		stats.rebuildStarted(f.count)
+		if bypassDisjoint {
+			f.populateBypassingDisjoint(skl, cmp, formatKey, constructSpan)
+			return
+		}
 		frag := &keyspan.Fragmenter{
 			Cmp:    cmp,
 			Format: formatKey,
@@ -419,6 +427,80 @@ func (f *keySpanFrags) get(
 	return f.spans
 }
 
+// populateBypassingDisjoint populates f.spans with the same fragments as
+// passing every span in skl through one keyspan.Fragmenter, but only runs the
+// Fragmenter over spans that overlap another span.
+//
+// Spans arrive in start key order. A cluster is a run of spans in which each
+// span starts before the largest end key of the spans before it in the run. No
+// fragment crosses a cluster boundary, so a cluster of one span is emitted
+// as-is. This requires that the Fragmenter leave a lone span's keys in the
+// order they were decoded, which holds for range deletions since each decodes
+// to a single key.
+func (f *keySpanFrags) populateBypassingDisjoint(
+	skl *arenaskl.Skiplist, cmp Compare, formatKey base.FormatKey, constructSpan constructSpan,
+) {
+	emit := func(s keyspan.Span) {
+		if f.spans == nil {
+			f.spans = make([]keyspan.Span, 0, f.count)
+		}
+		f.spans = append(f.spans, s)
+	}
+	frag := keyspan.Fragmenter{Cmp: cmp, Format: formatKey, Emit: emit}
+
+	// first is the first span of the current cluster. It's added to frag only
+	// once a second span joins the cluster.
+	var first keyspan.Span
+	var clusterLen int
+	var clusterEnd []byte
+	emitFirst := func() {
+		// Keys points into keysDst. Cap it so an append to the emitted span
+		// can't overwrite the keys of the span decoded after it.
+		n := len(first.Keys)
+		emit(keyspan.Span{Start: first.Start, End: first.End, Keys: first.Keys[:n:n]})
+	}
+
+	// The skiplist may hold more than f.count spans if there were concurrent
+	// applies, in which case decoding the extra spans allocates.
+	keysDst := make([]keyspan.Key, 0, f.count)
+	it := skl.NewIter(nil, nil)
+	for kv := it.First(); kv != nil; kv = it.Next() {
+		s, err := constructSpan(kv.K, kv.InPlaceValue(), keysDst)
+		if err != nil {
+			panic(err)
+		}
+		keysDst = s.Keys[len(s.Keys):]
+		if cmp(s.Start, s.End) >= 0 {
+			// The Fragmenter would drop this empty span.
+			continue
+		}
+		if clusterLen > 0 && cmp(s.Start, clusterEnd) < 0 {
+			if clusterLen == 1 {
+				frag.Add(first)
+			}
+			frag.Add(s)
+			clusterLen++
+			if cmp(s.End, clusterEnd) > 0 {
+				clusterEnd = s.End
+			}
+			continue
+		}
+		// s begins a new cluster, so emit the current one before anything
+		// after it. Every fragment of a multi-span cluster ends at or before
+		// s.Start, so truncating at s.Start flushes all of them.
+		if clusterLen == 1 {
+			emitFirst()
+		} else if clusterLen > 1 {
+			frag.Truncate(s.Start)
+		}
+		first, clusterLen, clusterEnd = s, 1, s.End
+	}
+	if clusterLen == 1 {
+		emitFirst()
+	}
+	frag.Finish()
+}
+
 // A keySpanCache is used to cache a set of fragmented spans. The cache is
 // invalidated whenever a key of the same kind is added to a memTable, and
 // populated when empty when a span iterator of that key kind is created.
@@ -432,6 +514,11 @@ type keySpanCache struct {
 	// stats, if non-nil, records invalidations and rebuilds of the cache. It is
 	// owned by the DB and shared by the caches of all its memtables.
 	stats *keySpanCacheStats
+	// bypassDisjoint is passed to keySpanFrags.get. It's set only for range
+	// deletions: a RangeKeySet decodes to several keys that share a trailer,
+	// and the Fragmenter sorts keys with an unstable sort, so emitting a lone
+	// range key span as-is could change the order of its keys.
+	bypassDisjoint bool
 }
 
 // Invalidate the current set of cached spans, indicating the number of
@@ -464,7 +551,7 @@ func (c *keySpanCache) get() []keyspan.Span {
 	if frags == nil {
 		return nil
 	}
-	return frags.get(c.skl, c.cmp, c.formatKey, c.constructSpan, c.stats)
+	return frags.get(c.skl, c.cmp, c.formatKey, c.constructSpan, c.bypassDisjoint, c.stats)
 }
 
 // keySpanCacheStats records how often keySpanCaches are invalidated and
