@@ -375,7 +375,7 @@ func (m *memTable) newRangeDelIter(*IterOptions) keyspan.FragmentIterator {
 	if len(v.chunks) == 1 {
 		return keyspan.NewIter(m.cmp, v.chunks[0].spans)
 	}
-	return &rangeDelChunkIter{cmp: m.cmp, chunks: v.chunks, ci: -1}
+	return &rangeDelChunkIter{cmp: m.cmp, v: v, ci: -1}
 }
 
 // newRangeKeyIter is part of the flushable interface.
@@ -1130,25 +1130,28 @@ func rangeDelSpansEqual(cmp Compare, a, b []keyspan.Span) bool {
 // the version's spans in a single slice would, and the spans it returns point
 // into the chunks, so they stay valid for as long as the version is reachable.
 type rangeDelChunkIter struct {
-	cmp    Compare
-	chunks []*rangeDelChunk
-	// ci is the current chunk, and i the current span within it. ci is -1
-	// before the first span and len(chunks) after the last, where i is unused.
-	ci, i int
-	// spans is chunks[ci].spans, or nil before the first span and after the
+	cmp Compare
+	v   *rangeDelVersion
+	// spans is v.chunks[ci].spans, or nil before the first span and after the
 	// last, so that Next and Prev within a chunk index it as keyspan.Iter
 	// indexes its spans.
 	spans []keyspan.Span
+	// ci is the current chunk, and i the current span within it. ci is -1
+	// before the first span and len(v.chunks) after the last, where i is
+	// unused. They're int32s, and v is a pointer rather than the chunks, so
+	// that the iterator, which newRangeDelIter allocates for each read, takes
+	// 48 bytes.
+	ci, i int32
 }
 
 var _ keyspan.FragmentIterator = (*rangeDelChunkIter)(nil)
 
 // setChunk positions the iterator at chunk ci, which is -1 before the first
-// span, or len(chunks) after the last.
+// span, or len(v.chunks) after the last.
 func (it *rangeDelChunkIter) setChunk(ci int) {
-	it.ci = ci
-	if uint(ci) < uint(len(it.chunks)) {
-		it.spans = it.chunks[ci].spans
+	it.ci = int32(ci)
+	if chunks := it.v.chunks; uint(ci) < uint(len(chunks)) {
+		it.spans = chunks[ci].spans
 	} else {
 		it.spans = nil
 	}
@@ -1158,10 +1161,11 @@ func (it *rangeDelChunkIter) setChunk(ci int) {
 func (it *rangeDelChunkIter) SeekGE(key []byte) (*keyspan.Span, error) {
 	// The span sought, the first that ends after key, is in the first chunk
 	// whose last span ends after key.
-	ci, hi := 0, len(it.chunks)
+	chunks := it.v.chunks
+	ci, hi := 0, len(chunks)
 	for ci < hi {
 		h := int(uint(ci+hi) >> 1)
-		spans := it.chunks[h].spans
+		spans := chunks[h].spans
 		if it.cmp(key, spans[len(spans)-1].End) >= 0 {
 			ci = h + 1
 		} else {
@@ -1169,7 +1173,7 @@ func (it *rangeDelChunkIter) SeekGE(key []byte) (*keyspan.Span, error) {
 		}
 	}
 	it.setChunk(ci)
-	if ci == len(it.chunks) {
+	if ci == len(chunks) {
 		return nil, nil
 	}
 	spans := it.spans
@@ -1182,7 +1186,7 @@ func (it *rangeDelChunkIter) SeekGE(key []byte) (*keyspan.Span, error) {
 			hi = h
 		}
 	}
-	it.i = i
+	it.i = int32(i)
 	return &spans[i], nil
 }
 
@@ -1190,10 +1194,11 @@ func (it *rangeDelChunkIter) SeekGE(key []byte) (*keyspan.Span, error) {
 func (it *rangeDelChunkIter) SeekLT(key []byte) (*keyspan.Span, error) {
 	// The span sought, the last that starts before key, is in the last chunk
 	// whose first span starts before key.
-	ci, hi := 0, len(it.chunks)
+	chunks := it.v.chunks
+	ci, hi := 0, len(chunks)
 	for ci < hi {
 		h := int(uint(ci+hi) >> 1)
-		if it.cmp(key, it.chunks[h].spans[0].Start) > 0 {
+		if it.cmp(key, chunks[h].spans[0].Start) > 0 {
 			ci = h + 1
 		} else {
 			hi = h
@@ -1214,8 +1219,8 @@ func (it *rangeDelChunkIter) SeekLT(key []byte) (*keyspan.Span, error) {
 			hi = h
 		}
 	}
-	it.i = i - 1
-	return &spans[it.i], nil
+	it.i = int32(i - 1)
+	return &spans[i-1], nil
 }
 
 // First implements keyspan.FragmentIterator.
@@ -1227,16 +1232,16 @@ func (it *rangeDelChunkIter) First() (*keyspan.Span, error) {
 
 // Last implements keyspan.FragmentIterator.
 func (it *rangeDelChunkIter) Last() (*keyspan.Span, error) {
-	it.setChunk(len(it.chunks) - 1)
-	it.i = len(it.spans) - 1
+	it.setChunk(len(it.v.chunks) - 1)
+	it.i = int32(len(it.spans) - 1)
 	return &it.spans[it.i], nil
 }
 
 // Next implements keyspan.FragmentIterator.
 func (it *rangeDelChunkIter) Next() (*keyspan.Span, error) {
 	// Before the first span and after the last, it.spans is empty.
-	if i := it.i + 1; uint(i) < uint(len(it.spans)) {
-		it.i = i
+	if i := int(it.i) + 1; uint(i) < uint(len(it.spans)) {
+		it.i = int32(i)
 		return &it.spans[i], nil
 	}
 	return it.nextChunk()
@@ -1248,10 +1253,10 @@ func (it *rangeDelChunkIter) Next() (*keyspan.Span, error) {
 //
 //go:noinline
 func (it *rangeDelChunkIter) nextChunk() (*keyspan.Span, error) {
-	if it.ci >= len(it.chunks) {
+	if int(it.ci) >= len(it.v.chunks) {
 		return nil, nil
 	}
-	it.setChunk(it.ci + 1)
+	it.setChunk(int(it.ci) + 1)
 	if it.spans == nil {
 		return nil, nil
 	}
@@ -1262,8 +1267,8 @@ func (it *rangeDelChunkIter) nextChunk() (*keyspan.Span, error) {
 // Prev implements keyspan.FragmentIterator.
 func (it *rangeDelChunkIter) Prev() (*keyspan.Span, error) {
 	// Before the first span and after the last, it.spans is empty.
-	if i := it.i - 1; uint(i) < uint(len(it.spans)) {
-		it.i = i
+	if i := int(it.i) - 1; uint(i) < uint(len(it.spans)) {
+		it.i = int32(i)
 		return &it.spans[i], nil
 	}
 	return it.prevChunk()
@@ -1275,14 +1280,14 @@ func (it *rangeDelChunkIter) prevChunk() (*keyspan.Span, error) {
 	switch {
 	case it.ci < 0:
 		return nil, nil
-	case it.ci >= len(it.chunks):
+	case int(it.ci) >= len(it.v.chunks):
 		return it.Last()
 	}
-	it.setChunk(it.ci - 1)
+	it.setChunk(int(it.ci) - 1)
 	if it.spans == nil {
 		return nil, nil
 	}
-	it.i = len(it.spans) - 1
+	it.i = int32(len(it.spans) - 1)
 	return &it.spans[it.i], nil
 }
 
