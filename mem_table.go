@@ -696,7 +696,7 @@ type rangeDelFragments struct {
 
 // rangeDelChunkSize is the number of fragments that a rangeDelVersion's chunks
 // hold after a split.
-const rangeDelChunkSize = 256
+const rangeDelChunkSize = 128
 
 // A rangeDelVersion is a set of fragmented range deletions: spans that are
 // sorted by start key and don't overlap, each holding keys sorted by trailer

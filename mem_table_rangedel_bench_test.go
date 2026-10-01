@@ -258,8 +258,8 @@ func BenchmarkMemTableRangeDelSpliceWide(b *testing.B) {
 
 // BenchmarkMemTableRangeDelIter compares rangeDelChunkIter over the chunks of
 // 100,000 fragments with a keyspan.Iter over the same fragments in one slice.
-// Next and Prev step one fragment per op and cross a chunk boundary about
-// every 256 ops.
+// Next and Prev step one fragment per op and cross a chunk boundary every 128
+// ops.
 func BenchmarkMemTableRangeDelIter(b *testing.B) {
 	const n = 100_000
 	for _, iter := range []string{"chunked", "flat"} {

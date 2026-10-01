@@ -21,7 +21,7 @@ func rangeDelGetAfterBatchOptions() *Options { return incrementalRangeDelOptions
 // deletions to a key that none of them covers, as a Get right after the batch
 // does. The memtable starts with frags disjoint fragments and is replaced, off
 // the clock, once window batches have grown it, so it always holds at most
-// 256 fragments, which fit in a single chunk of the default size.
+// 256 fragments, which is two chunks of the default size.
 func BenchmarkMemTableRangeDelGetAfterBatch(b *testing.B) {
 	for _, c := range []struct{ frags, window int }{{16, 240}, {128, 128}} {
 		b.Run(fmt.Sprintf("frags=%d", c.frags), func(b *testing.B) {
