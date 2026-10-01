@@ -915,6 +915,13 @@ func chunkRangeDelSpans(spans []keyspan.Span, chunkSize int) []*rangeDelChunk {
 // every Keys slice it allocates, as well as the result, has no spare capacity.
 // If t is empty or inverted, spliceRangeDel returns spans and 0, as a
 // keyspan.Fragmenter drops such a span.
+//
+// Each splice copies the Keys of every fragment t covers. k nested range
+// deletions, such as deletions that share a start and advance their end, leave
+// fragments holding O(k^2) keys, so each further splice over them copies
+// O(k^2) keys while the caller holds rangeDelFragments.mu. Bounding this, for
+// example by falling back to rebuilding the fragments on a read, is left for
+// future work.
 func spliceRangeDel(
 	cmp Compare, spans []keyspan.Span, t rangeDelTombstone,
 ) (_ []keyspan.Span, touched int) {
