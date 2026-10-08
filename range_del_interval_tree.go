@@ -91,12 +91,15 @@ type rangeDelIndexOp struct {
 	trailer    base.InternalKeyTrailer
 }
 
-// rangeDelIntervalIndex stores range deletions in a persistent AVL tree. It has
-// a single writer; readers load only the published state and the arena.
+// rangeDelIntervalIndex stores memtable range deletions in a persistent AVL
+// tree. The memtable's rangeDelTail chain serializes writers: each batch waits
+// for its predecessor before publishing. Readers access only published state
+// and the arena.
 type rangeDelIntervalIndex struct {
-	arena *arenaskl.Arena
-	cmp   base.Compare
-	state atomic.Pointer[rangeDelIndexState]
+	arena    *arenaskl.Arena
+	cmp      base.Compare
+	state    atomic.Pointer[rangeDelIndexState]
+	terminal atomic.Pointer[error]
 	// counters is non-nil only when invariants.Enabled.
 	counters *rangeDelTreeCounters
 	// epoch advances once per batch, at batch start, so a node's epoch
@@ -109,6 +112,17 @@ type rangeDelIntervalIndex struct {
 	epoch, batchEpoch uint32
 	epochExhausted    bool
 	batchActive       bool
+}
+
+func (i *rangeDelIntervalIndex) fail(err error) {
+	i.terminal.CompareAndSwap(nil, &err)
+}
+
+func (i *rangeDelIntervalIndex) err() error {
+	if e := i.terminal.Load(); e != nil {
+		return *e
+	}
+	return nil
 }
 
 func newRangeDelIntervalIndex(arena *arenaskl.Arena, cmp base.Compare) *rangeDelIntervalIndex {

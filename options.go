@@ -1129,6 +1129,14 @@ type Options struct {
 	// V1.
 	IteratorStack IteratorStack
 
+	// IncrementalMemTableRangeDels incrementally maintains a range-deletion index
+	// for memtable point reads. It is called once when each memtable is created,
+	// so a change takes effect at the next memtable rotation. Full-history reads
+	// and flushing still use the fragmented tombstone cache.
+	//
+	// Experimental. The default returns false.
+	IncrementalMemTableRangeDels func() bool
+
 	// NoSyncOnClose decides whether the Pebble instance will enforce a
 	// close-time synchronization (e.g., fdatasync() or sync_file_range())
 	// on files it writes to. Setting this to true removes the guarantee for a
@@ -1663,6 +1671,9 @@ func (o *Options) EnsureDefaults() {
 	if o.DisableIngestAsFlushable == nil {
 		o.DisableIngestAsFlushable = func() bool { return false }
 	}
+	if o.IncrementalMemTableRangeDels == nil {
+		o.IncrementalMemTableRangeDels = func() bool { return false }
+	}
 	if o.IteratorStack == IteratorStackDefault {
 		// Default to V1; in invariant builds randomize the default.
 		o.IteratorStack = IteratorStackV1
@@ -1917,6 +1928,9 @@ func (o *Options) String() string {
 	}
 	if o.IteratorStack != IteratorStackDefault {
 		fmt.Fprintf(&buf, "  iterator_stack=%s\n", o.IteratorStack)
+	}
+	if o.IncrementalMemTableRangeDels != nil && o.IncrementalMemTableRangeDels() {
+		fmt.Fprintf(&buf, "  incremental_mem_table_range_dels=true\n")
 	}
 	fmt.Fprintf(&buf, "  flush_delay_delete_range=%s\n", o.FlushDelayDeleteRange)
 	fmt.Fprintf(&buf, "  flush_delay_range_key=%s\n", o.FlushDelayRangeKey)
@@ -2219,6 +2233,12 @@ func (o *Options) Parse(s string, hooks *ParseHooks) error {
 				}
 			case "disable_lazy_combined_iteration":
 				o.private.disableLazyCombinedIteration, err = strconv.ParseBool(value)
+			case "incremental_mem_table_range_dels":
+				var v bool
+				v, err = strconv.ParseBool(value)
+				if err == nil {
+					o.IncrementalMemTableRangeDels = func() bool { return v }
+				}
 			case "iterator_stack":
 				switch value {
 				case "v1":

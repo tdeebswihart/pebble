@@ -906,7 +906,11 @@ func newFlush(
 	for i := range flushing {
 		f := flushing[i]
 		updatePointBounds(f.newIter(nil))
-		if rangeDelIter := f.newRangeDelIter(nil); rangeDelIter != nil {
+		if m, ok := f.flushable.(*memTable); ok && m.incrementalRangeDels {
+			if bounds := m.rangeDelBounds(); bounds.Valid(cmp) {
+				c.bounds = c.bounds.Union(cmp, bounds.Clone())
+			}
+		} else if rangeDelIter := f.newRangeDelIter(nil); rangeDelIter != nil {
 			if err := updateRangeBounds(rangeDelIter); err != nil {
 				return nil, err
 			}

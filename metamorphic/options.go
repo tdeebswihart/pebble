@@ -608,6 +608,16 @@ enabled = false
 [Options]
   iterator_stack=v2
 `,
+		31: `
+[Options]
+  iterator_stack=v1
+  incremental_mem_table_range_dels=true
+`,
+		32: `
+[Options]
+  iterator_stack=v2
+  incremental_mem_table_range_dels=true
+`,
 	}
 
 	opts := make([]*TestOptions, len(stdOpts))
@@ -752,6 +762,8 @@ func RandomOptions(rng *rand.Rand, kf KeyFormat, cfg RandomOptionsCfg) *TestOpti
 	} else {
 		opts.IteratorStack = pebble.IteratorStackV2
 	}
+	incrementalMemTableRangeDels := rng.IntN(2) == 0
+	opts.IncrementalMemTableRangeDels = func() bool { return incrementalMemTableRangeDels }
 
 	// We either use no multilevel compactions, multilevel compactions with the
 	// default (zero) additional propensity, or multilevel compactions with an

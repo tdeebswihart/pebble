@@ -54,6 +54,9 @@ func init() {
 			"production configuration: 10s range-delete flush delay, 256 MiB memtables, "+
 			"32 KiB blocks, 10-bit bloom filters, fastest compression; the comparer and "+
 			"key schema stay the benchmark's)")
+	f.BoolVar(&rangeDelConfig.IncrementalMemTableRangeDels, "incremental-memtable-rangedels",
+		rangeDelConfig.IncrementalMemTableRangeDels,
+		"maintain the incremental memtable range deletion index")
 }
 
 func runRangeDelCmd(cmd *cobra.Command, args []string) error {

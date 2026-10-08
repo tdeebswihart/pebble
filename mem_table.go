@@ -82,9 +82,16 @@ type memTable struct {
 	// inflight mutations that have reserved space in the memtable but not yet
 	// applied. The memtable cannot be flushed to disk until the writer refs
 	// drops to zero.
-	writerRefs atomic.Int32
-	tombstones keySpanCache
-	rangeKeys  keySpanCache
+	writerRefs           atomic.Int32
+	tombstones           keySpanCache
+	rangeKeys            keySpanCache
+	incrementalRangeDels bool
+	rangeDelIndex        atomic.Pointer[rangeDelIntervalIndex]
+	// rangeDelTail is the completion channel of the last registered RANGEDEL
+	// batch. The next batch waits for it to close before publishing its root.
+	// Keeping only the channel avoids retaining earlier tasks and batches.
+	// Only prepare accesses the tail, under its caller's serialization.
+	rangeDelTail chan struct{}
 	// The current logSeqNum at the time the memtable was created. This is
 	// guaranteed to be less than or equal to any seqnum stored in the memtable.
 	logSeqNum                    base.SeqNum
@@ -96,6 +103,8 @@ func (m *memTable) free() {
 		m.releaseAccountingReservation()
 		manual.Free(manual.MemTable, m.arenaBuf)
 		m.arenaBuf = manual.Buf{}
+		m.rangeDelIndex.Store(nil)
+		m.rangeDelTail = nil
 	}
 }
 
@@ -141,6 +150,7 @@ func (m *memTable) init(opts memTableOptions) {
 		equal:                        opts.Comparer.Equal,
 		arenaBuf:                     opts.arenaBuf,
 		logSeqNum:                    opts.logSeqNum,
+		incrementalRangeDels:         opts.IncrementalMemTableRangeDels(),
 		releaseAccountingReservation: opts.releaseAccountingReservation,
 	}
 	m.writerRefs.Store(1)
@@ -197,6 +207,9 @@ func (m *memTable) readyForFlush() bool {
 // that prepare is not thread-safe, while apply is. The caller must call
 // writerUnref() after the batch has been applied.
 func (m *memTable) prepare(batch *Batch) error {
+	if invariants.Enabled && batch.rangeDelTask != nil {
+		return errors.AssertionFailedf("pebble: batch already has a rangedel task")
+	}
 	avail := m.availBytes()
 	if batch.memTableSize > uint64(avail) {
 		return arenaskl.ErrArenaFull
@@ -204,10 +217,93 @@ func (m *memTable) prepare(batch *Batch) error {
 	m.reserved += uint32(batch.memTableSize)
 
 	m.writerRef()
+	if m.incrementalRangeDels && batch.countRangeDels != 0 {
+		index := m.rangeDelIndex.Load()
+		if index == nil {
+			index = newRangeDelIntervalIndex(m.skl.Arena(), m.cmp)
+			m.rangeDelIndex.Store(index)
+		}
+		task := &rangeDelIndexTask{
+			index:       index,
+			predecessor: m.rangeDelTail,
+			done:        make(chan struct{}),
+			ops:         make([]rangeDelIndexOp, 0, batch.countRangeDels),
+		}
+		batch.rangeDelTask = task
+		m.rangeDelTail = task.done
+	}
 	return nil
 }
 
-func (m *memTable) apply(batch *Batch, seqNum base.SeqNum) error {
+// rangeDelIndexTask indexes one batch's range deletions. Tasks form a linked
+// list in prepare order: each task's predecessor is the previous RANGEDEL
+// batch's done channel, and publish waits on it. A batch has no task (nil) when
+// the memtable's incremental index is disabled or the batch contains no
+// RANGEDELs, so the methods are no-ops on a nil task.
+type rangeDelIndexTask struct {
+	index       *rangeDelIntervalIndex
+	predecessor <-chan struct{}
+	done        chan struct{}
+	ops         []rangeDelIndexOp
+	published   bool
+}
+
+// add records a range deletion to be published by the task.
+func (t *rangeDelIndexTask) add(op rangeDelIndexOp) {
+	if t == nil {
+		return
+	}
+	t.ops = append(t.ops, op)
+}
+
+// publish waits for the preceding batch's task to finish and then publishes
+// the task's operations to the index.
+func (t *rangeDelIndexTask) publish(start, end base.SeqNum) error {
+	if t == nil {
+		return nil
+	}
+	if t.predecessor != nil {
+		<-t.predecessor
+		t.predecessor = nil
+	}
+	if err := t.index.err(); err != nil {
+		return err
+	}
+	if err := t.index.publish(start, end, t.ops); err != nil {
+		return err
+	}
+	t.published = true
+	return nil
+}
+
+// finish fails the index if the batch did not apply successfully or if the
+// task never published, and then releases the batch's task so successors can
+// proceed.
+func (t *rangeDelIndexTask) finish(batch *Batch, err error) {
+	if t == nil {
+		return
+	}
+	if err != nil {
+		t.index.fail(err)
+	} else if !t.published {
+		t.index.fail(base.CorruptionErrorf("pebble: incomplete rangedel batch"))
+	}
+	t.predecessor = nil
+	batch.rangeDelTask = nil
+	close(t.done)
+}
+
+func (m *memTable) apply(batch *Batch, seqNum base.SeqNum) (retErr error) {
+	task := batch.rangeDelTask
+	defer func() { task.finish(batch, retErr) }()
+	if invariants.Enabled && m.incrementalRangeDels {
+		if (task != nil) != (batch.countRangeDels != 0) {
+			return base.CorruptionErrorf("pebble: missing or unexpected rangedel task")
+		}
+		if task != nil && task.index != m.rangeDelIndex.Load() {
+			return base.CorruptionErrorf("pebble: rangedel task belongs to a different index")
+		}
+	}
 	if seqNum < m.logSeqNum {
 		return base.CorruptionErrorf("pebble: batch seqnum %d is less than memtable creation seqnum %d",
 			errors.Safe(seqNum), errors.Safe(m.logSeqNum))
@@ -227,7 +323,15 @@ func (m *memTable) apply(batch *Batch, seqNum base.SeqNum) error {
 		ikey := base.MakeInternalKey(ukey, seqNum, kind)
 		switch kind {
 		case InternalKeyKindRangeDelete:
-			err = m.rangeDelSkl.Add(ikey, value)
+			var keyOff, valueOff uint32
+			keyOff, valueOff, err = m.rangeDelSkl.AddWithOffsets(ikey, value)
+			if err == nil {
+				task.add(rangeDelIndexOp{
+					start:   arenaKey{keyOff, uint32(len(ukey))},
+					end:     arenaKey{valueOff, uint32(len(value))},
+					trailer: ikey.Trailer,
+				})
+			}
 			tombstoneCount++
 		case InternalKeyKindRangeKeySet, InternalKeyKindRangeKeyUnset, InternalKeyKindRangeKeyDelete:
 			err = m.rangeKeySkl.Add(ikey, value)
@@ -248,6 +352,13 @@ func (m *memTable) apply(batch *Batch, seqNum base.SeqNum) error {
 	if seqNum != startSeqNum+base.SeqNum(batch.Count()) {
 		return base.CorruptionErrorf("pebble: inconsistent batch count: %d vs %d",
 			errors.Safe(seqNum), errors.Safe(startSeqNum+base.SeqNum(batch.Count())))
+	}
+	if m.incrementalRangeDels && uint64(tombstoneCount) != batch.countRangeDels {
+		return base.CorruptionErrorf("pebble: inconsistent rangedel count: %d vs %d",
+			errors.Safe(tombstoneCount), errors.Safe(batch.countRangeDels))
+	}
+	if err := task.publish(startSeqNum, seqNum); err != nil {
+		return err
 	}
 	if tombstoneCount != 0 {
 		m.tombstones.invalidate(tombstoneCount)

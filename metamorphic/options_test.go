@@ -79,6 +79,7 @@ func TestOptionsRoundtrip(t *testing.T) {
 		"DeletionPacing.BaselineRate:",
 		"CompactionGarbageFractionForMaxConcurrency:",
 		"DisableIngestAsFlushable:",
+		"IncrementalMemTableRangeDels:",
 		"EnableColumnarBlocks:",
 		"EnableValueBlocks:",
 		"IneffectualSingleDeleteCallback:",
@@ -123,6 +124,7 @@ func TestOptionsRoundtrip(t *testing.T) {
 		// that the return values are equal.
 		expectEqualFn(t, o.Opts.EnableValueBlocks, parsed.Opts.EnableValueBlocks)
 		expectEqualFn(t, o.Opts.DisableIngestAsFlushable, parsed.Opts.DisableIngestAsFlushable)
+		expectEqualFn(t, o.Opts.IncrementalMemTableRangeDels, parsed.Opts.IncrementalMemTableRangeDels)
 		expectEqualFn(t, o.Opts.IngestSplit, parsed.Opts.IngestSplit)
 		expectEqualFn(t, o.Opts.CompactionGarbageFractionForMaxConcurrency, parsed.Opts.CompactionGarbageFractionForMaxConcurrency)
 		expectEqualFn(t, o.Opts.TombstoneDenseCompactionThreshold, parsed.Opts.TombstoneDenseCompactionThreshold)

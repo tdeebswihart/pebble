@@ -403,6 +403,7 @@ func benchmarkRangeDelWriteRead(
 		d, err := Open("", &Options{
 			FS: vfs.NewMem(), DisableWAL: true, MemTableSize: 4 << 20,
 			Comparer: f.comparer, Logger: base.NoopLoggerAndTracer{},
+			IncrementalMemTableRangeDels: func() bool { return true },
 		})
 		require.NoError(b, err)
 		require.NoError(b, d.Set(key, []byte("v"), NoSync))

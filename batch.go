@@ -334,6 +334,10 @@ type batchInternal struct {
 	// encoding, so memTableSize is larger than len(data) and may overflow a
 	// uint32.
 	memTableSize uint64
+	// rangeDelTask orders this batch's range deletion index publication after
+	// earlier batches in the memtable. It is set by memTable.prepare and cleared
+	// by memTable.apply.
+	rangeDelTask *rangeDelIndexTask
 
 	// The db to which the batch will be committed. Do not change this field
 	// after the batch has been created as it might invalidate internal state.

@@ -461,7 +461,7 @@ func computePossibleOverlapsGenericImpl[F flushable](
 	f F, cmp Compare, fn func(bounded) shouldContinue, bounded []bounded,
 ) {
 	iter := f.newIter(nil)
-	rangeDelIter := f.newRangeDelIter(nil)
+	rangeDelIter := newPointRangeDelIter(f, nil, base.SeqNumMax)
 	rangeKeyIter := f.newRangeKeyIter(nil)
 	for _, b := range bounded {
 		overlap, err := determineOverlapAllIters(cmp, b.UserKeyBounds(), iter, rangeDelIter, rangeKeyIter)

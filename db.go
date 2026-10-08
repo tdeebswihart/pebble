@@ -1453,7 +1453,7 @@ func (i *Iterator) constructPointIter(
 			}
 			mlevels = append(mlevels, mergingIterLevel{
 				iter:         iter,
-				rangeDelIter: mem.newRangeDelIter(&i.opts),
+				rangeDelIter: newPointRangeDelIter(mem.flushable, &i.opts, i.seqNum),
 			})
 		}
 
@@ -1595,7 +1595,7 @@ func (i *Iterator) constructPointIterV2(
 				continue
 			}
 			pointIter := mem.newIter(&i.opts)
-			rangeDelIter := mem.newRangeDelIter(&i.opts)
+			rangeDelIter := newPointRangeDelIter(mem.flushable, &i.opts, i.seqNum)
 			iiter := bld.InterleavingIter()
 			iiter.Init(i.comparer, pointIter, rangeDelIter,
 				nil, nil, // startKey, endKey: unbounded

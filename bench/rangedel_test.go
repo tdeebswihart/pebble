@@ -178,4 +178,14 @@ func TestRangeDelOptions(t *testing.T) {
 	probe := &pebble.Options{}
 	common.OptionsHook(probe)
 	require.Equal(t, uint64(8<<20), probe.MemTableSize)
+
+	for _, enabled := range []bool{false, true} {
+		cfg := DefaultRangeDelConfig()
+		cfg.IncrementalMemTableRangeDels = enabled
+		c := rangeDelCommonConfig(&common, &cfg)
+		opts := &pebble.Options{}
+		c.OptionsHook(opts)
+		require.Equal(t, enabled, opts.IncrementalMemTableRangeDels())
+	}
+	require.False(t, DefaultRangeDelConfig().IncrementalMemTableRangeDels)
 }

@@ -19,6 +19,7 @@ import (
 	"github.com/cockroachdb/datadriven"
 	"github.com/cockroachdb/errors"
 	"github.com/cockroachdb/pebble/internal/base"
+	"github.com/cockroachdb/pebble/internal/invariants"
 	"github.com/cockroachdb/pebble/internal/strparse"
 	"github.com/cockroachdb/pebble/internal/testkeys"
 	"github.com/cockroachdb/pebble/internal/testutils"
@@ -34,6 +35,10 @@ import (
 func (o *Options) randomizeForTesting(t testing.TB) {
 	if o.Logger == nil {
 		o.Logger = testutils.Logger{T: t}
+	}
+	if invariants.Enabled {
+		incrementalMemTableRangeDels := rand.IntN(2) == 0
+		o.IncrementalMemTableRangeDels = func() bool { return incrementalMemTableRangeDels }
 	}
 	if o.FormatMajorVersion == FormatDefault {
 		// Pick a random format major version from the range

@@ -60,6 +60,9 @@ type RangeDelConfig struct {
 	IterFrac float64
 	// DBOptions is dbOptionsDefault or dbOptionsProdWriteHeavy.
 	DBOptions string
+	// IncrementalMemTableRangeDels sets
+	// pebble.Options.IncrementalMemTableRangeDels.
+	IncrementalMemTableRangeDels bool
 }
 
 // DefaultRangeDelConfig returns the default range-delete benchmark configuration.
@@ -122,14 +125,16 @@ func (c *RangeDelConfig) validate() error {
 
 func rangeDelCommonConfig(common *CommonConfig, cfg *RangeDelConfig) CommonConfig {
 	c := *common
-	if cfg.DBOptions == dbOptionsProdWriteHeavy {
-		callerHook := c.OptionsHook
-		c.OptionsHook = func(opts *pebble.Options) {
-			if callerHook != nil {
-				callerHook(opts)
-			}
+	callerHook := c.OptionsHook
+	c.OptionsHook = func(opts *pebble.Options) {
+		if callerHook != nil {
+			callerHook(opts)
+		}
+		if cfg.DBOptions == dbOptionsProdWriteHeavy {
 			applyProdWriteHeavyDBOptions(opts)
 		}
+		incremental := cfg.IncrementalMemTableRangeDels
+		opts.IncrementalMemTableRangeDels = func() bool { return incremental }
 	}
 	return c
 }
@@ -149,9 +154,11 @@ func RunRangeDel(dir string, common *CommonConfig, cfg *RangeDelConfig) error {
 		arenaSize = opts.MemTableSize
 	}
 	fmt.Printf("rangedel: shape=%s queues=%d overlap-frac=%v rangedels-per-batch=%d "+
-		"sets-per-batch=%d iter-frac=%v db-options=%s gomaxprocs=%d\n",
+		"sets-per-batch=%d iter-frac=%v db-options=%s incremental-memtable-rangedels=%t "+
+		"gomaxprocs=%d\n",
 		cfg.Shape, cfg.Queues, cfg.OverlapFrac, cfg.RangeDelsPerBatch,
-		cfg.SetsPerBatch, cfg.IterFrac, cfg.DBOptions, runtime.GOMAXPROCS(0))
+		cfg.SetsPerBatch, cfg.IterFrac, cfg.DBOptions, cfg.IncrementalMemTableRangeDels,
+		runtime.GOMAXPROCS(0))
 
 	var reads, writes atomic.Uint64
 	var counts rangeDelCounters
