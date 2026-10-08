@@ -7,14 +7,20 @@ package bench
 import (
 	"flag"
 	"fmt"
+	"math/rand/v2"
 	"os"
 	"path/filepath"
 	"sync"
 	"testing"
+	"time"
 
+	"github.com/HdrHistogram/hdrhistogram-go"
 	"github.com/cockroachdb/pebble"
+	"github.com/cockroachdb/pebble/internal/ackseq"
 	"github.com/cockroachdb/pebble/internal/base"
 	"github.com/cockroachdb/pebble/internal/randvar"
+	"github.com/cockroachdb/pebble/vfs"
+	"github.com/stretchr/testify/require"
 )
 
 // BenchmarkYCSB mirrors the YCSB roachtest in
@@ -26,12 +32,15 @@ import (
 //
 // Run example:
 //
-//	go test -tags invariants -run=^$ -bench=BenchmarkYCSB \
+//	go test -run=^$ -bench=BenchmarkYCSB \
 //	    ./bench -timeout=0 -benchtime=1000000x
 //
 // b.N controls the number of workload operations per sub-benchmark.
 func BenchmarkYCSB(b *testing.B) {
 	initialKeys := *ycsbBenchInitialKeys
+	if initialKeys < 1 || *ycsbBenchConcurrency < 1 || *ycsbBenchWarmupOps < 0 {
+		b.Fatal("YCSB fixture keys and concurrency must be positive; warmup must be nonnegative")
+	}
 	const fixtureCacheBytes = 4 << 30
 
 	rootDir := *ycsbBenchFixtureDir
@@ -66,6 +75,15 @@ var ycsbBenchFixtureDir = flag.String("ycsb-bench-fixture-dir", defaultYCSBFixtu
 var ycsbBenchInitialKeys = flag.Int("ycsb-bench-initial-keys", 10_000_000,
 	"number of keys in the YCSB benchmark fixture")
 
+var ycsbBenchConcurrency = flag.Int("ycsb-bench-concurrency", 256,
+	"maximum number of YCSB benchmark workers")
+
+var ycsbBenchWarmupOps = flag.Int("ycsb-bench-warmup-ops", 10_000,
+	"untimed YCSB operations before each measured workload")
+
+// Candidate options apply to the workload checkpoint, never the cached fixture.
+var ycsbBenchOptionsHook func(*pebble.Options)
+
 func defaultYCSBFixtureDir() string {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -86,7 +104,7 @@ func ensureYCSBFixture(
 		b.Logf("reusing YCSB fixture at %s", fixtureDir)
 		return nil
 	}
-	b.Logf("building YCSB fixture at %s (values=%d, initial-keys=%d) — this may take a while",
+	b.Logf("building YCSB fixture at %s (values=%d, initial-keys=%d). This may take a while",
 		fixtureDir, valueSize, initialKeys)
 
 	if err := os.RemoveAll(fixtureDir); err != nil {
@@ -136,9 +154,10 @@ func ensureYCSBFixture(
 func runYCSBWorkload(b *testing.B, fixtureDir, workload string, valueSize, initialKeys int) {
 	common := &CommonConfig{
 		CacheSize:   4 << 30,
-		Concurrency: 256,
+		Concurrency: *ycsbBenchConcurrency,
 		DisableWAL:  false,
 		Logger:      base.NoopLoggerAndTracer{},
+		OptionsHook: ycsbBenchOptionsHook,
 	}
 	cfg := DefaultYCSBConfig()
 	cfg.Workload = workload
@@ -148,8 +167,6 @@ func runYCSBWorkload(b *testing.B, fixtureDir, workload string, valueSize, initi
 	}
 	cfg.InitialKeys = 0
 	cfg.PrepopulatedKeys = initialKeys
-	// Cap operations at b.N. The workers exit when y.numOps >= cfg.NumOps.
-	cfg.NumOps = uint64(b.N)
 	cfg.Values = randvar.NewBytesFlag(fmt.Sprintf("%d", valueSize))
 
 	// Open the fixture with compactions disabled and checkpoint it. The
@@ -157,6 +174,7 @@ func runYCSBWorkload(b *testing.B, fixtureDir, workload string, valueSize, initi
 	// disk; disabling compactions keeps the cached fixture from being mutated
 	// between runs.
 	srcCfg := *common
+	srcCfg.OptionsHook = nil
 	srcCfg.DisableAutoCompactions = true
 	srcDB := NewPebbleDB(fixtureDir, &srcCfg).(pebbleDB)
 	ckptDir := filepath.Join(b.TempDir(), "ckpt")
@@ -181,10 +199,186 @@ func runYCSBWorkload(b *testing.B, fixtureDir, workload string, valueSize, initi
 	}
 
 	y := newYcsb(common, &cfg, weights, keyDist, cfg.Batch, cfg.Scans, cfg.Values)
+	y.db = db
+	y.keyNum = ackseq.New(uint64(initialKeys))
+	warmup := newYCSBBenchmarkRun(y, uint64(*ycsbBenchWarmupOps), common.Concurrency)
+	warmup.run(db)
+	y.readAmpCount.Store(0)
+	y.readAmpSum.Store(0)
+	run := newYCSBBenchmarkRun(y, uint64(b.N), common.Concurrency)
+	// Keep the warmup's buffers and RNG streams, but exclude its latency samples.
+	for i := range min(len(run.workers), len(warmup.workers)) {
+		run.workers[i].buf = warmup.workers[i].buf
+		run.workers[i].ops = randvar.NewWeighted(run.workers[i].buf.rng, y.weights...)
+	}
 
+	b.ReportAllocs()
 	b.ResetTimer()
-	var wg sync.WaitGroup
-	y.run(db, &wg)
-	wg.Wait()
+	run.run(db)
 	b.StopTimer()
+	run.report(b)
+	b.ReportMetric(float64(*ycsbBenchWarmupOps), "warmup-ops")
+}
+
+const ycsbBenchMaxLatency = time.Minute
+
+type ycsbBenchmarkWorker struct {
+	buf        ycsbBuf
+	ops        *randvar.Weighted
+	quota      uint64
+	completed  uint64
+	histograms [ycsbNumOps]*hdrhistogram.Histogram
+	clipped    [ycsbNumOps]uint64
+}
+
+type ycsbBenchmarkRun struct {
+	y       *ycsb
+	workers []ycsbBenchmarkWorker
+}
+
+func newYCSBBenchmarkHistogram() *hdrhistogram.Histogram {
+	return hdrhistogram.New(100, ycsbBenchMaxLatency.Nanoseconds(), 2)
+}
+
+// The CLI checks its global limit after each operation and may exceed b.N.
+// Fixed worker quotas execute exactly b.N operations using the same operations.
+// The benchmark excludes the CLI's one-second read-amp sampler, which can delay
+// completion after the workers finish. Histogram allocation precedes the timer.
+func newYCSBBenchmarkRun(y *ycsb, operations uint64, concurrency int) *ycsbBenchmarkRun {
+	n := min(uint64(concurrency), operations)
+	r := &ycsbBenchmarkRun{y: y, workers: make([]ycsbBenchmarkWorker, int(n))}
+	for i := range r.workers {
+		w := &r.workers[i]
+		w.buf.rng = rand.New(rand.NewPCG(6207, uint64(i)))
+		w.ops = randvar.NewWeighted(w.buf.rng, y.weights...)
+		w.quota = operations / n
+		if uint64(i) < operations%n {
+			w.quota++
+		}
+		for op := range ycsbNumOps {
+			if y.weights.get(op) > 0 {
+				w.histograms[op] = newYCSBBenchmarkHistogram()
+			}
+		}
+	}
+	return r
+}
+
+func (r *ycsbBenchmarkRun) run(db DB) {
+	var wg sync.WaitGroup
+	for i := range r.workers {
+		w := &r.workers[i]
+		wg.Go(func() {
+			for range w.quota {
+				op := w.ops.Int()
+				start := time.Now()
+				switch op {
+				case ycsbInsert:
+					r.y.insert(db, &w.buf)
+				case ycsbRead:
+					r.y.read(db, &w.buf)
+				case ycsbScan:
+					r.y.scan(db, &w.buf, false)
+				case ycsbReverseScan:
+					r.y.scan(db, &w.buf, true)
+				case ycsbUpdate:
+					r.y.update(db, &w.buf)
+				default:
+					panic("unknown YCSB operation")
+				}
+				latency := time.Since(start)
+				if latency > ycsbBenchMaxLatency {
+					w.clipped[op]++
+				}
+				if err := w.histograms[op].RecordValue(max(100, min(latency.Nanoseconds(), ycsbBenchMaxLatency.Nanoseconds()))); err != nil {
+					panic(err)
+				}
+				w.completed++
+			}
+		})
+	}
+	wg.Wait()
+}
+
+func (r *ycsbBenchmarkRun) completed() uint64 {
+	var count uint64
+	for _, w := range r.workers {
+		count += w.completed
+	}
+	return count
+}
+
+func (r *ycsbBenchmarkRun) report(b *testing.B) {
+	completed := r.completed()
+	if completed != uint64(b.N) {
+		b.Fatalf("completed %d operations, expected %d", completed, b.N)
+	}
+	b.ReportMetric(float64(completed), "completed-ops")
+	b.ReportMetric(float64(len(r.workers)), "workers")
+	b.ReportMetric(float64(completed)/b.Elapsed().Seconds(), "ops/s")
+	all := newYCSBBenchmarkHistogram()
+	for op, name := range []string{"insert", "read", "scan", "rscan", "update"} {
+		h := newYCSBBenchmarkHistogram()
+		var clipped uint64
+		for _, w := range r.workers {
+			if w.histograms[op] != nil {
+				if dropped := h.Merge(w.histograms[op]); dropped != 0 {
+					b.Fatalf("dropped %d histogram samples", dropped)
+				}
+				clipped += w.clipped[op]
+			}
+		}
+		if h.TotalCount() == 0 {
+			continue
+		}
+		b.ReportMetric(float64(h.TotalCount()), name+"-ops")
+		b.ReportMetric(float64(clipped), name+"-clipped-ops")
+		for _, q := range []float64{50, 95, 99, 99.9, 100} {
+			b.ReportMetric(float64(h.ValueAtQuantile(q)), fmt.Sprintf("%s-p%g-ns", name, q))
+		}
+		if dropped := all.Merge(h); dropped != 0 {
+			b.Fatalf("dropped %d combined histogram samples", dropped)
+		}
+	}
+	if all.TotalCount() != int64(completed) {
+		b.Fatalf("histogram has %d samples for %d completed operations", all.TotalCount(), completed)
+	}
+	b.ReportMetric(float64(all.ValueAtQuantile(99)), "p99-ns")
+	b.ReportMetric(float64(all.ValueAtQuantile(99.9)), "p99.9-ns")
+}
+
+func TestYCSBBenchmarkOperations(t *testing.T) {
+	for _, workload := range []string{"A", "B", "C", "D", "E", "F"} {
+		t.Run(workload, func(t *testing.T) {
+			common := &CommonConfig{CacheSize: 1 << 20, DisableWAL: true, Logger: base.NoopLoggerAndTracer{},
+				OptionsHook: func(o *pebble.Options) { o.FS = vfs.NewMem() },
+			}
+			db := NewPebbleDB("db", common)
+			defer func() { require.NoError(t, db.Close()) }()
+			cfg := DefaultYCSBConfig()
+			cfg.Workload, cfg.InitialKeys = workload, 100
+			weights, err := ycsbParseWorkload(workload)
+			require.NoError(t, err)
+			keys, err := ycsbParseKeyDist(cfg.Keys, &cfg)
+			require.NoError(t, err)
+			y := newYcsb(common, &cfg, weights, keys, cfg.Batch, cfg.Scans, cfg.Values)
+			y.init(db)
+			y.db, y.keyNum = db, ackseq.New(100)
+			for _, operations := range []uint64{0, 1, 7, 257} {
+				run := newYCSBBenchmarkRun(y, operations, 256)
+				run.run(db)
+				require.Equal(t, operations, run.completed())
+				var samples int64
+				for _, w := range run.workers {
+					require.Equal(t, w.quota, w.completed)
+					for _, h := range w.histograms {
+						if h != nil {
+							samples += h.TotalCount()
+						}
+					}
+				}
+				require.EqualValues(t, operations, samples)
+			}
+		})
+	}
 }
