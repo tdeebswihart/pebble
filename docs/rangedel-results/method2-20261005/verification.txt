@@ -1,0 +1,62 @@
+Method 2 verification, run by the primary agent in the Pebble checkout.
+
+$ go test -tags invariants -run RangeDel -count=1 .
+ok github.com/cockroachdb/pebble 17.132s
+exit=0
+
+$ go test -tags invariants -run TestRangeDelIntervalTreeBoundaryInsertion -count=1 .
+ok github.com/cockroachdb/pebble 0.944s
+exit=0
+
+$ go test -race -tags invariants -run RangeDel -count=1 .
+ok github.com/cockroachdb/pebble 78.386s
+exit=0
+
+$ go build -tags invariants ./...
+(no output)
+exit=0
+
+$ make format
+go install -C internal/devtools github.com/cockroachdb/crlfmt && crlfmt -w -tab 2 .
+exit=0
+
+$ GOPATH=/tmp/pebble-method2-gopath STATICCHECK_CACHE=/tmp/pebble-method2-staticcheck-cache make lint TAGS=invariants
+go test -tags 'invariants' -run . ./internal/lint
+ok github.com/cockroachdb/pebble/internal/lint 5.951s
+exit=0
+
+Repository lint includes vet and static checks. The temporary GOPATH contains
+a checkout symlink for package discovery.
+
+$ SAMPLES=1 BENCHTIME=1x BENCH_FILTER='^BenchmarkRangeDelIntervalPrototype$/disjoint/n=100000/batch=16$' scripts/rangedel-prototype.sh /tmp/pebble-method2-20261005/candidate
+sample 1
+exit=0
+Full release checkpoint: 154 cases. Raw output and command exits are in
+candidate/checkpoint.log and candidate/commands.log.
+
+Both checkpoints match Intervals, Active, HistoryKeys, registry allocation,
+publication count and node size in all 154 cases. Attribution did not exhaust;
+every candidate case reports zero BatchFreshCopies.
+
+Read-only Luna code review found no material findings. It did not run gates.
+Claude Opus 5.5 independently critiqued the plan before implementation.
+
+The first comparison was intentionally interrupted after a traversal refinement.
+Its candidate binary and logs remain in candidate-initial. Final measurements
+use the candidate folder and commands.jsonl.
+
+$ go test -race -tags invariants -run 'TestRangeDelIntervalTree(ExistingBoundaries|BoundaryInsertion|TaggedRotations|TagStructure)$' -count=1 .
+ok github.com/cockroachdb/pebble 4.448s
+exit=0
+
+Baseline failure check for TestRangeDelIntervalTreeTagStructure:
+$ go test -tags invariants -run TestRangeDelIntervalTreeTagStructure -count=1 .
+FAIL (tree height changed from 6 to 7); exit=1, expected.
+See red-test.log. The temporary baseline test file was then removed.
+The same test passes as part of the focused invariants and targeted race gates.
+
+$ python3 /tmp/pebble-method2-20261005/run-comparison.py
+Twenty alternating timing commands and benchstat exited 0.
+See commands.jsonl for literal commands, exit codes, durations, and raw log paths.
+Ten samples per variant in each of 55 cases. Benchstat reports 52 timing
+improvements, three without significant change, and 34.12% lower geomean runtime.

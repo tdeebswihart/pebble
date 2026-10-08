@@ -1,0 +1,781 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/cockroachdb/pebble
+cpu: Apple M5 Max
+                                                           │ /tmp/pebble-method2-20261005/baseline/comparison-combined.txt │ /tmp/pebble-method2-20261005/candidate/comparison-combined.txt │
+                                                           │                            sec/op                             │                 sec/op                  vs base                │
+RangeDelIntervalPrototype/disjoint/n=100000/batch=1                                                           262.6m ±  7%                             202.0m ±  3%  -23.11% (p=0.000 n=10)
+RangeDelIntervalPrototype/disjoint/n=100000/batch=16                                                          90.04m ±  2%                             76.05m ±  2%  -15.54% (p=0.000 n=10)
+RangeDelIntervalPrototype/disjoint/n=100000/batch=64                                                          88.51m ±  4%                             74.70m ± 12%  -15.61% (p=0.000 n=10)
+RangeDelIntervalPrototype/disjoint/n=100000/batch=256                                                         87.49m ±  5%                             66.27m ± 11%  -24.26% (p=0.000 n=10)
+RangeDelIntervalPrototype/disjoint/n=100000/batch=1000                                                        88.33m ±  2%                             68.89m ±  5%  -22.01% (p=0.000 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=1                                                         392.8m ±  4%                             281.7m ± 10%  -28.29% (p=0.000 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=16                                                        119.4m ±  2%                             105.5m ±  3%  -11.64% (p=0.000 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=64                                                        93.72m ± 12%                             93.69m ± 10%        ~ (p=0.353 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=256                                                       91.45m ±  3%                             92.98m ±  5%        ~ (p=0.481 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=1000                                                      91.17m ±  2%                             90.46m ±  4%        ~ (p=0.971 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=1                                                       460.0m ±  7%                             268.9m ±  4%  -41.54% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=16                                                     103.40m ±  3%                             40.78m ±  3%  -60.56% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=64                                                      85.08m ±  6%                             27.15m ±  5%  -68.09% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=256                                                     84.17m ±  3%                             26.96m ±  2%  -67.96% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=1000                                                    84.56m ±  1%                             26.77m ±  2%  -68.34% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=1                                                          549.2m ±  6%                             428.5m ±  4%  -21.97% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=16                                                        172.39m ±  7%                             97.86m ±  7%  -43.23% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=64                                                        128.68m ±  1%                             91.85m ±  1%  -28.62% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=256                                                       124.77m ±  5%                             83.46m ±  9%  -33.11% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=1000                                                      126.59m ±  1%                             85.11m ±  8%  -32.77% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=1                                                             952.9m ± 25%                             629.6m ±  7%  -33.93% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=16                                                            792.7m ± 12%                             412.6m ±  9%  -47.95% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=64                                                            723.9m ± 12%                             367.1m ± 11%  -49.29% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=256                                                           483.2m ± 23%                             351.4m ±  5%  -27.28% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=1000                                                          410.1m ± 14%                             275.1m ±  7%  -32.92% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=1                                                         251.8m ± 12%                             205.1m ±  2%  -18.57% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=16                                                        91.24m ±  2%                             76.94m ±  2%  -15.68% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=64                                                        89.08m ±  5%                             67.76m ± 10%  -23.93% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=256                                                       89.10m ±  8%                             68.74m ±  5%  -22.85% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=1000                                                      88.46m ±  6%                             67.29m ±  4%  -23.92% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=1                                                              213.6m ± 10%                             157.5m ±  2%  -26.26% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=16                                                             70.35m ±  3%                             52.18m ±  6%  -25.83% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=64                                                             69.75m ±  5%                             45.25m ±  2%  -35.13% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=256                                                            65.88m ±  2%                             44.63m ±  3%  -32.25% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=1000                                                           53.56m ±  1%                             43.46m ±  2%  -18.86% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=1                                                           409.1m ± 13%                             273.2m ±  2%  -33.22% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=16                                                          313.2m ±  4%                             174.9m ±  4%  -44.16% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=64                                                          246.9m ± 10%                             169.3m ±  5%  -31.44% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=256                                                         202.0m ±  7%                             152.6m ±  2%  -24.42% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=1000                                                        190.4m ±  3%                             111.0m ± 11%  -41.68% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=1                                                        390.2m ± 21%                             271.8m ± 10%  -30.35% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=16                                                       314.4m ±  6%                             173.8m ±  7%  -44.70% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=64                                                       248.9m ±  5%                             171.4m ±  5%  -31.15% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=256                                                      205.1m ±  3%                             159.0m ±  5%  -22.48% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=1000                                                     192.0m ±  4%                             112.4m ±  3%  -41.44% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=1                                                         414.7m ±  9%                             270.9m ±  5%  -34.67% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=16                                                        328.7m ±  7%                             175.6m ±  2%  -46.57% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=64                                                        270.9m ±  6%                             173.0m ±  5%  -36.14% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=256                                                       212.4m ±  5%                             158.7m ±  4%  -25.25% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=1000                                                      196.0m ± 11%                             111.1m ±  2%  -43.30% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=1                                                           254.4m ±  7%                             172.9m ±  1%  -32.03% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=16                                                         150.31m ±  5%                             78.54m ±  2%  -47.75% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=64                                                         140.28m ±  3%                             69.93m ±  3%  -50.15% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=256                                                         92.79m ±  3%                             55.31m ±  1%  -40.39% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=1000                                                        72.91m ±  1%                             51.88m ±  1%  -28.84% (p=0.000 n=10)
+geomean                                                                                                       174.1m                                   114.7m        -34.12%
+
+                                                           │ /tmp/pebble-method2-20261005/baseline/comparison-combined.txt │ /tmp/pebble-method2-20261005/candidate/comparison-combined.txt │
+                                                           │                     batch-fresh/tombstone                     │         batch-fresh/tombstone          vs base                 │
+RangeDelIntervalPrototype/disjoint/n=100000/batch=1                                                           0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/disjoint/n=100000/batch=16                                                          0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/disjoint/n=100000/batch=64                                                          0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/disjoint/n=100000/batch=256                                                         0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/disjoint/n=100000/batch=1000                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/concentric/n=100000/batch=1                                                         0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/concentric/n=100000/batch=16                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/concentric/n=100000/batch=64                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/concentric/n=100000/batch=256                                                       0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/concentric/n=100000/batch=1000                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/shared-start/n=100000/batch=1                                                       0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/shared-start/n=100000/batch=16                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/shared-start/n=100000/batch=64                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/shared-start/n=100000/batch=256                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/shared-start/n=100000/batch=1000                                                    0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/staircase/n=100000/batch=1                                                          0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/staircase/n=100000/batch=16                                                         0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/staircase/n=100000/batch=64                                                         0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/staircase/n=100000/batch=256                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/staircase/n=100000/batch=1000                                                       0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/random/n=100000/batch=1                                                             0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/random/n=100000/batch=16                                                            0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/random/n=100000/batch=64                                                            0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/random/n=100000/batch=256                                                           0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/random/n=100000/batch=1000                                                          0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/full-cover/n=100000/batch=1                                                         0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/full-cover/n=100000/batch=16                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/full-cover/n=100000/batch=64                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/full-cover/n=100000/batch=256                                                       0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/full-cover/n=100000/batch=1000                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/cycle/n=100000/batch=1                                                              0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/cycle/n=100000/batch=16                                                             0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/cycle/n=100000/batch=64                                                             0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/cycle/n=100000/batch=256                                                            0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/cycle/n=100000/batch=1000                                                           0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0/n=100000/batch=1                                                           0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0/n=100000/batch=16                                                          0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0/n=100000/batch=64                                                          0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0/n=100000/batch=256                                                         0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0/n=100000/batch=1000                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=1                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=16                                                       0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=64                                                       0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=256                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=1000                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=1                                                         0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=16                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=64                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=256                                                       0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=1000                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-1/n=100000/batch=1                                                           0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-1/n=100000/batch=16                                                          0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-1/n=100000/batch=64                                                          0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-1/n=100000/batch=256                                                         0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-1/n=100000/batch=1000                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+geomean                                                                                                                  ²                                          +0.00%                ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                                           │ /tmp/pebble-method2-20261005/baseline/comparison-combined.txt │ /tmp/pebble-method2-20261005/candidate/comparison-combined.txt │
+                                                           │                    insert-fresh/tombstone                     │        insert-fresh/tombstone          vs base                 │
+RangeDelIntervalPrototype/disjoint/n=100000/batch=1                                                           0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/disjoint/n=100000/batch=16                                                          0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/disjoint/n=100000/batch=64                                                          0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/disjoint/n=100000/batch=256                                                         0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/disjoint/n=100000/batch=1000                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/concentric/n=100000/batch=1                                                         0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/concentric/n=100000/batch=16                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/concentric/n=100000/batch=64                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/concentric/n=100000/batch=256                                                       0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/concentric/n=100000/batch=1000                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/shared-start/n=100000/batch=1                                                       0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/shared-start/n=100000/batch=16                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/shared-start/n=100000/batch=64                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/shared-start/n=100000/batch=256                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/shared-start/n=100000/batch=1000                                                    0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/staircase/n=100000/batch=1                                                          0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/staircase/n=100000/batch=16                                                         0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/staircase/n=100000/batch=64                                                         0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/staircase/n=100000/batch=256                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/staircase/n=100000/batch=1000                                                       0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/random/n=100000/batch=1                                                             0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/random/n=100000/batch=16                                                            0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/random/n=100000/batch=64                                                            0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/random/n=100000/batch=256                                                           0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/random/n=100000/batch=1000                                                          0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/full-cover/n=100000/batch=1                                                         0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/full-cover/n=100000/batch=16                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/full-cover/n=100000/batch=64                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/full-cover/n=100000/batch=256                                                       0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/full-cover/n=100000/batch=1000                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/cycle/n=100000/batch=1                                                              0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/cycle/n=100000/batch=16                                                             0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/cycle/n=100000/batch=64                                                             0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/cycle/n=100000/batch=256                                                            0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/cycle/n=100000/batch=1000                                                           0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0/n=100000/batch=1                                                           0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0/n=100000/batch=16                                                          0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0/n=100000/batch=64                                                          0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0/n=100000/batch=256                                                         0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0/n=100000/batch=1000                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=1                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=16                                                       0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=64                                                       0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=256                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=1000                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=1                                                         0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=16                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=64                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=256                                                       0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=1000                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-1/n=100000/batch=1                                                           0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-1/n=100000/batch=16                                                          0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-1/n=100000/batch=64                                                          0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-1/n=100000/batch=256                                                         0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-1/n=100000/batch=1000                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=10) ¹
+geomean                                                                                                                  ²                                          +0.00%                ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                                           │ /tmp/pebble-method2-20261005/baseline/comparison-combined.txt │ /tmp/pebble-method2-20261005/candidate/comparison-combined.txt │
+                                                           │                    insert-reused/tombstone                    │        insert-reused/tombstone          vs base                │
+RangeDelIntervalPrototype/disjoint/n=100000/batch=1                                                             85.95 ± 0%                               35.38 ± 0%  -58.84% (p=0.000 n=10)
+RangeDelIntervalPrototype/disjoint/n=100000/batch=16                                                           12.710 ± 0%                               5.961 ± 0%  -53.10% (p=0.000 n=10)
+RangeDelIntervalPrototype/disjoint/n=100000/batch=64                                                            9.179 ± 0%                               4.490 ± 0%  -51.08% (p=0.000 n=10)
+RangeDelIntervalPrototype/disjoint/n=100000/batch=256                                                           8.294 ± 0%                               4.122 ± 0%  -50.30% (p=0.000 n=10)
+RangeDelIntervalPrototype/disjoint/n=100000/batch=1000                                                          8.075 ± 0%                               4.031 ± 0%  -50.08% (p=0.000 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=1                                                           82.20 ± 0%                               43.85 ± 0%  -46.65% (p=0.000 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=16                                                         15.530 ± 0%                               6.489 ± 0%  -58.22% (p=0.000 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=64                                                         12.320 ± 0%                               4.622 ± 0%  -62.48% (p=0.000 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=256                                                        11.520 ± 0%                               4.155 ± 0%  -63.93% (p=0.000 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=1000                                                       11.320 ± 0%                               4.040 ± 0%  -64.31% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=1                                                         91.58 ± 0%                               16.69 ± 0%  -81.78% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=16                                                        7.426 ± 0%                               1.043 ± 0%  -85.95% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=64                                                      3357.0m ± 0%                              260.8m ± 0%  -92.23% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=256                                                    2339.00m ± 0%                              65.19m ± 0%  -97.21% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=1000                                                   2086.00m ± 0%                              16.55m ± 0%  -99.21% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=1                                                           112.50 ± 0%                               35.38 ± 0%  -68.55% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=16                                                          12.470 ± 0%                               3.148 ± 0%  -74.76% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=64                                                           7.618 ± 0%                               1.537 ± 0%  -79.82% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=256                                                          6.404 ± 0%                               1.134 ± 0%  -82.29% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=1000                                                         6.103 ± 0%                               1.034 ± 0%  -83.06% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=1                                                              131.50 ± 0%                               59.38 ± 0%  -54.84% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=16                                                              92.66 ± 0%                               46.26 ± 0%  -50.08% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=64                                                              72.24 ± 0%                               37.21 ± 0%  -48.49% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=256                                                             52.60 ± 0%                               27.59 ± 0%  -47.55% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=1000                                                            35.02 ± 0%                               18.42 ± 0%  -47.40% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=1                                                           85.95 ± 0%                               35.38 ± 0%  -58.84% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=16                                                         12.720 ± 0%                               5.961 ± 0%  -53.14% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=64                                                          9.179 ± 0%                               4.490 ± 0%  -51.08% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=256                                                         8.295 ± 0%                               4.122 ± 0%  -50.31% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=1000                                                        8.075 ± 0%                               4.031 ± 0%  -50.08% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=1                                                                54.50 ± 0%                               14.40 ± 0%  -73.58% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=16                                                               8.023 ± 0%                               2.058 ± 0%  -74.35% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=64                                                               5.601 ± 0%                               1.403 ± 0%  -74.95% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=256                                                              4.293 ± 0%                               1.078 ± 0%  -74.89% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=1000                                                           2025.0m ± 0%                              408.8m ± 0%  -79.81% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=1                                                             88.40 ± 0%                               30.12 ± 0%  -65.93% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=16                                                            62.86 ± 0%                               22.14 ± 0%  -64.78% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=64                                                            50.51 ± 0%                               17.93 ± 0%  -64.50% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=256                                                           37.76 ± 0%                               13.41 ± 0%  -64.49% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=1000                                                         24.090 ± 0%                               8.226 ± 0%  -65.85% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=1                                                          88.26 ± 0%                               29.99 ± 0%  -66.02% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=16                                                         62.66 ± 0%                               22.00 ± 0%  -64.89% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=64                                                         50.30 ± 0%                               17.81 ± 0%  -64.59% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=256                                                        37.53 ± 0%                               13.29 ± 0%  -64.59% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=1000                                                      23.920 ± 0%                               8.147 ± 0%  -65.94% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=1                                                           87.11 ± 0%                               29.19 ± 0%  -66.49% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=16                                                          61.49 ± 0%                               21.24 ± 0%  -65.46% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=64                                                          49.08 ± 0%                               17.07 ± 0%  -65.22% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=256                                                         36.20 ± 0%                               12.60 ± 0%  -65.19% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=1000                                                       22.500 ± 0%                               7.635 ± 0%  -66.07% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=1                                                             62.70 ± 0%                               16.49 ± 0%  -73.70% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=16                                                           37.260 ± 0%                               8.798 ± 0%  -76.39% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=64                                                           25.320 ± 0%                               5.273 ± 0%  -79.17% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=256                                                          14.140 ± 0%                               2.469 ± 0%  -82.54% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=1000                                                        5597.0m ± 0%                              842.2m ± 0%  -84.95% (p=0.000 n=10)
+geomean                                                                                                         21.23                                    6.087       -71.32%
+
+                                                           │ /tmp/pebble-method2-20261005/baseline/comparison-combined.txt │ /tmp/pebble-method2-20261005/candidate/comparison-combined.txt │
+                                                           │                        nodes/tombstone                        │            nodes/tombstone              vs base                │
+RangeDelIntervalPrototype/disjoint/n=100000/batch=1                                                             19.69 ± 0%                               18.69 ± 0%   -5.08% (p=0.000 n=10)
+RangeDelIntervalPrototype/disjoint/n=100000/batch=16                                                            4.043 ± 0%                               3.043 ± 0%  -24.73% (p=0.000 n=10)
+RangeDelIntervalPrototype/disjoint/n=100000/batch=64                                                            3.261 ± 0%                               2.261 ± 0%  -30.67% (p=0.000 n=10)
+RangeDelIntervalPrototype/disjoint/n=100000/batch=256                                                           3.065 ± 0%                               2.065 ± 0%  -32.63% (p=0.000 n=10)
+RangeDelIntervalPrototype/disjoint/n=100000/batch=1000                                                          3.017 ± 0%                               2.017 ± 0%  -33.15% (p=0.000 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=1                                                           33.88 ± 0%                               22.17 ± 0%  -34.56% (p=0.000 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=16                                                          5.836 ± 0%                               3.261 ± 0%  -44.12% (p=0.000 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=64                                                          4.459 ± 0%                               2.315 ± 0%  -48.08% (p=0.000 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=256                                                         4.115 ± 0%                               2.079 ± 0%  -49.48% (p=0.000 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=1000                                                        4.029 ± 0%                               2.020 ± 0%  -49.86% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=1                                                         56.95 ± 0%                               30.88 ± 0%  -45.78% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=16                                                        4.465 ± 0%                               2.836 ± 0%  -36.48% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=64                                                        1.867 ± 0%                               1.459 ± 0%  -21.85% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=256                                                       1.217 ± 0%                               1.115 ± 0%   -8.38% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=1000                                                      1.055 ± 0%                               1.029 ± 0%   -2.46% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=1                                                            74.14 ± 0%                               48.57 ± 0%  -34.49% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=16                                                           7.446 ± 0%                               4.879 ± 0%  -34.47% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=64                                                           4.112 ± 0%                               2.720 ± 0%  -33.85% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=256                                                          3.278 ± 0%                               2.180 ± 0%  -33.50% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=1000                                                         3.070 ± 0%                               2.046 ± 0%  -33.36% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=1                                                               95.75 ± 0%                               52.35 ± 0%  -45.33% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=16                                                              72.51 ± 0%                               40.37 ± 0%  -44.32% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=64                                                              57.21 ± 0%                               32.52 ± 0%  -43.16% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=256                                                             41.78 ± 0%                               24.52 ± 0%  -41.31% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=1000                                                            27.39 ± 0%                               16.90 ± 0%  -38.30% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=1                                                           19.69 ± 0%                               18.69 ± 0%   -5.08% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=16                                                          4.043 ± 0%                               3.043 ± 0%  -24.73% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=64                                                          3.261 ± 0%                               2.261 ± 0%  -30.67% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=256                                                         3.065 ± 0%                               2.065 ± 0%  -32.63% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=1000                                                        3.017 ± 0%                               2.017 ± 0%  -33.15% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=1                                                               17.500 ± 0%                               9.089 ± 0%  -48.06% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=16                                                               3.721 ± 0%                               2.214 ± 0%  -40.50% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=64                                                               2.973 ± 0%                               1.850 ± 0%  -37.77% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=256                                                              2.465 ± 0%                               1.641 ± 0%  -33.43% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=1000                                                           1009.0m ± 0%                              735.7m ± 0%  -27.09% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=1                                                             29.29 ± 0%                               16.97 ± 0%  -42.06% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=16                                                            21.48 ± 0%                               12.97 ± 0%  -39.62% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=64                                                            17.42 ± 0%                               10.84 ± 0%  -37.77% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=256                                                          13.190 ± 0%                               8.477 ± 0%  -35.73% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=1000                                                          8.580 ± 0%                               5.600 ± 0%  -34.73% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=1                                                          29.40 ± 0%                               16.98 ± 0%  -42.24% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=16                                                         21.56 ± 0%                               12.98 ± 0%  -39.80% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=64                                                         17.50 ± 0%                               10.85 ± 0%  -38.00% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=256                                                       13.250 ± 0%                               8.483 ± 0%  -35.98% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=1000                                                       8.632 ± 0%                               5.619 ± 0%  -34.91% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=1                                                           30.27 ± 0%                               17.22 ± 0%  -43.11% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=16                                                          22.42 ± 0%                               13.22 ± 0%  -41.03% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=64                                                          18.31 ± 0%                               11.09 ± 0%  -39.43% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=256                                                        13.910 ± 0%                               8.697 ± 0%  -37.48% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=1000                                                        9.012 ± 0%                               5.796 ± 0%  -35.69% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=1                                                            20.130 ± 0%                               9.912 ± 0%  -50.76% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=16                                                           12.360 ± 0%                               5.988 ± 0%  -51.55% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=64                                                            8.445 ± 0%                               4.085 ± 0%  -51.63% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=256                                                           4.743 ± 0%                               2.379 ± 0%  -49.84% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=1000                                                          1.902 ± 0%                               1.085 ± 0%  -42.95% (p=0.000 n=10)
+geomean                                                                                                         8.848                                    5.576       -36.98%
+
+                                                           │ /tmp/pebble-method2-20261005/baseline/comparison-combined.txt │ /tmp/pebble-method2-20261005/candidate/comparison-combined.txt │
+                                                           │                         sec/tombstone                         │             sec/tombstone               vs base                │
+RangeDelIntervalPrototype/disjoint/n=100000/batch=1                                                           2.626µ ±  7%                             2.019µ ±  3%  -23.10% (p=0.000 n=10)
+RangeDelIntervalPrototype/disjoint/n=100000/batch=16                                                          900.4n ±  2%                             760.5n ±  2%  -15.54% (p=0.000 n=10)
+RangeDelIntervalPrototype/disjoint/n=100000/batch=64                                                          885.1n ±  4%                             747.0n ± 12%  -15.61% (p=0.000 n=10)
+RangeDelIntervalPrototype/disjoint/n=100000/batch=256                                                         874.9n ±  5%                             662.6n ± 11%  -24.26% (p=0.000 n=10)
+RangeDelIntervalPrototype/disjoint/n=100000/batch=1000                                                        883.3n ±  2%                             688.9n ±  5%  -22.01% (p=0.000 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=1                                                         3.928µ ±  4%                             2.817µ ± 10%  -28.28% (p=0.000 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=16                                                        1.194µ ±  2%                             1.054µ ±  3%  -11.65% (p=0.000 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=64                                                        937.2n ± 12%                             936.8n ± 10%        ~ (p=0.353 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=256                                                       914.5n ±  3%                             929.8n ±  5%        ~ (p=0.481 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=1000                                                      911.7n ±  2%                             904.7n ±  4%        ~ (p=0.988 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=1                                                       4.601µ ±  7%                             2.689µ ±  4%  -41.55% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=16                                                     1034.0n ±  3%                             407.9n ±  3%  -60.56% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=64                                                      850.9n ±  6%                             271.5n ±  5%  -68.09% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=256                                                     841.6n ±  3%                             269.7n ±  2%  -67.96% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=1000                                                    845.6n ±  1%                             267.8n ±  2%  -68.34% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=1                                                          5.492µ ±  6%                             4.285µ ±  4%  -21.98% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=16                                                        1723.5n ±  7%                             978.6n ±  7%  -43.22% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=64                                                        1287.0n ±  1%                             918.5n ±  1%  -28.64% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=256                                                       1247.5n ±  5%                             834.5n ±  9%  -33.10% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=1000                                                      1266.0n ±  1%                             851.2n ±  8%  -32.77% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=1                                                             9.529µ ± 25%                             6.296µ ±  7%  -33.93% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=16                                                            7.926µ ± 12%                             4.126µ ±  9%  -47.95% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=64                                                            7.240µ ± 12%                             3.672µ ± 11%  -49.29% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=256                                                           4.832µ ± 23%                             3.514µ ±  5%  -27.27% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=1000                                                          4.102µ ± 14%                             2.752µ ±  7%  -32.91% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=1                                                         2.518µ ± 12%                             2.050µ ±  2%  -18.57% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=16                                                        912.5n ±  2%                             769.3n ±  2%  -15.68% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=64                                                        890.8n ±  5%                             677.6n ± 10%  -23.93% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=256                                                       891.0n ±  8%                             687.5n ±  5%  -22.85% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=1000                                                      884.6n ±  6%                             673.0n ±  4%  -23.92% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=1                                                              2.136µ ± 10%                             1.575µ ±  2%  -26.26% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=16                                                             703.5n ±  3%                             521.8n ±  6%  -25.83% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=64                                                             697.5n ±  5%                             452.4n ±  2%  -35.14% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=256                                                            658.8n ±  2%                             446.3n ±  3%  -32.25% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=1000                                                           535.7n ±  1%                             434.7n ±  2%  -18.86% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=1                                                           4.091µ ± 13%                             2.732µ ±  2%  -33.22% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=16                                                          3.133µ ±  4%                             1.750µ ±  4%  -44.15% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=64                                                          2.469µ ± 10%                             1.693µ ±  5%  -31.43% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=256                                                         2.020µ ±  7%                             1.527µ ±  2%  -24.43% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=1000                                                        1.904µ ±  3%                             1.111µ ± 11%  -41.68% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=1                                                        3.901µ ± 21%                             2.717µ ± 10%  -30.35% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=16                                                       3.144µ ±  6%                             1.738µ ±  7%  -44.72% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=64                                                       2.490µ ±  5%                             1.714µ ±  5%  -31.17% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=256                                                      2.052µ ±  3%                             1.590µ ±  5%  -22.50% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=1000                                                     1.919µ ±  4%                             1.124µ ±  3%  -41.44% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=1                                                         4.147µ ±  9%                             2.710µ ±  5%  -34.66% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=16                                                        3.288µ ±  7%                             1.757µ ±  2%  -46.57% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=64                                                        2.709µ ±  6%                             1.730µ ±  5%  -36.14% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=256                                                       2.124µ ±  5%                             1.588µ ±  4%  -25.24% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=1000                                                      1.960µ ± 11%                             1.112µ ±  2%  -43.29% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=1                                                           2.544µ ±  7%                             1.729µ ±  1%  -32.04% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=16                                                         1503.0n ±  5%                             785.4n ±  2%  -47.74% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=64                                                         1402.5n ±  3%                             699.3n ±  3%  -50.14% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=256                                                         928.0n ±  3%                             553.1n ±  1%  -40.40% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=1000                                                        729.1n ±  1%                             518.8n ±  1%  -28.84% (p=0.000 n=10)
+geomean                                                                                                       1.741µ                                   1.147µ        -34.12%
+
+                                                           │ /tmp/pebble-method2-20261005/baseline/comparison-combined.txt │ /tmp/pebble-method2-20261005/candidate/comparison-combined.txt │
+                                                           │                     push-copies/tombstone                     │       push-copies/tombstone        vs base                     │
+RangeDelIntervalPrototype/disjoint/n=100000/batch=1                                                           0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/disjoint/n=100000/batch=16                                                          0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/disjoint/n=100000/batch=64                                                          0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/disjoint/n=100000/batch=256                                                         0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/disjoint/n=100000/batch=1000                                                        0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/concentric/n=100000/batch=1                                                         0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/concentric/n=100000/batch=16                                                        0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/concentric/n=100000/batch=64                                                        0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/concentric/n=100000/batch=256                                                       0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/concentric/n=100000/batch=1000                                                      0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/shared-start/n=100000/batch=1                                                       54.95 ± 0%                            28.88 ± 0%   -47.44% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=16                                                      3.403 ± 0%                            1.774 ± 0%   -47.87% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=64                                                     850.9m ± 0%                           443.5m ± 0%   -47.88% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=256                                                    212.7m ± 0%                           110.9m ± 0%   -47.86% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=1000                                                   53.97m ± 0%                           28.13m ± 0%   -47.88% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=1                                                          54.95 ± 0%                            28.88 ± 0%   -47.44% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=16                                                         3.403 ± 0%                            1.773 ± 0%   -47.90% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=64                                                        850.9m ± 0%                           443.3m ± 0%   -47.90% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=256                                                       212.7m ± 0%                           110.7m ± 0%   -47.95% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=1000                                                      53.97m ± 0%                           28.13m ± 0%   -47.88% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=1                                                             76.43 ± 0%                            39.02 ± 0%   -48.95% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=16                                                            66.38 ± 0%                            36.17 ± 0%   -45.51% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=64                                                            53.42 ± 0%                            30.25 ± 0%   -43.37% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=256                                                           38.73 ± 0%                            22.89 ± 0%   -40.90% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=1000                                                          24.56 ± 0%                            15.45 ± 0%   -37.09% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=1                                                         0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/full-cover/n=100000/batch=16                                                        0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/full-cover/n=100000/batch=64                                                        0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/full-cover/n=100000/batch=256                                                       0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/full-cover/n=100000/batch=1000                                                      0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/cycle/n=100000/batch=1                                                              0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/cycle/n=100000/batch=16                                                             0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/cycle/n=100000/batch=64                                                             0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/cycle/n=100000/batch=256                                                            0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/cycle/n=100000/batch=1000                                                           0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0/n=100000/batch=1                                                           0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0/n=100000/batch=16                                                          0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0/n=100000/batch=64                                                          0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0/n=100000/batch=256                                                         0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0/n=100000/batch=1000                                                        0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=1                                                       92.63m ± 0%                            0.00m ± 0%  -100.00% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=16                                                      92.36m ± 0%                            0.00m ± 0%  -100.00% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=64                                                      91.77m ± 0%                            0.00m ± 0%  -100.00% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=256                                                     89.26m ± 0%                            0.00m ± 0%  -100.00% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=1000                                                    80.17m ± 0%                            0.00m ± 0%  -100.00% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=1                                                     854700.0µ ± 0%                           680.0µ ± 0%   -99.92% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=16                                                    852300.0µ ± 0%                           680.0µ ± 0%   -99.92% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=64                                                    843200.0µ ± 0%                           680.0µ ± 0%   -99.92% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=256                                                   811800.0µ ± 0%                           680.0µ ± 0%   -99.92% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=1000                                                  707800.0µ ± 0%                           590.0µ ± 0%   -99.92% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=1                                                           0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-1/n=100000/batch=16                                                          0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-1/n=100000/batch=64                                                          0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-1/n=100000/batch=256                                                         0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-1/n=100000/batch=1000                                                        0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+geomean                                                                                                                  ²                                      ?                       ² ³
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+³ ratios must be >0 to compute geomean
+
+                                                           │ /tmp/pebble-method2-20261005/baseline/comparison-combined.txt │ /tmp/pebble-method2-20261005/candidate/comparison-combined.txt │
+                                                           │                     push-reused/tombstone                     │       push-reused/tombstone        vs base                     │
+RangeDelIntervalPrototype/disjoint/n=100000/batch=1                                                           0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/disjoint/n=100000/batch=16                                                          0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/disjoint/n=100000/batch=64                                                          0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/disjoint/n=100000/batch=256                                                         0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/disjoint/n=100000/batch=1000                                                        0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/concentric/n=100000/batch=1                                                         0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/concentric/n=100000/batch=16                                                        0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/concentric/n=100000/batch=64                                                        0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/concentric/n=100000/batch=256                                                       0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/concentric/n=100000/batch=1000                                                      0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/shared-start/n=100000/batch=1                                                       0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/shared-start/n=100000/batch=16                                                      51.54 ± 0%                            27.10 ± 0%   -47.42% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=64                                                      54.10 ± 0%                            28.44 ± 0%   -47.43% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=256                                                     54.73 ± 0%                            28.77 ± 0%   -47.43% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=1000                                                    54.89 ± 0%                            28.85 ± 0%   -47.44% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=1                                                         10.00µ ± 0%                            0.00µ ± 0%  -100.00% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=16                                                         51.54 ± 0%                            27.10 ± 0%   -47.42% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=64                                                         54.10 ± 0%                            28.43 ± 0%   -47.45% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=256                                                        54.73 ± 0%                            28.77 ± 0%   -47.43% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=1000                                                       54.89 ± 0%                            28.85 ± 0%   -47.44% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=1                                                             21.30 ± 0%                             0.00 ± 0%  -100.00% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=16                                                           31.350 ± 0%                            2.844 ± 0%   -90.93% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=64                                                           44.310 ± 0%                            8.769 ± 0%   -80.21% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=256                                                           58.99 ± 0%                            16.13 ± 0%   -72.66% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=1000                                                          73.17 ± 0%                            23.57 ± 0%   -67.79% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=1                                                         0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/full-cover/n=100000/batch=16                                                        0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/full-cover/n=100000/batch=64                                                        0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/full-cover/n=100000/batch=256                                                       0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/full-cover/n=100000/batch=1000                                                      0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/cycle/n=100000/batch=1                                                              0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/cycle/n=100000/batch=16                                                             0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/cycle/n=100000/batch=64                                                             0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/cycle/n=100000/batch=256                                                            0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/cycle/n=100000/batch=1000                                                           0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0/n=100000/batch=1                                                           0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0/n=100000/batch=16                                                          0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0/n=100000/batch=64                                                          0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0/n=100000/batch=256                                                         0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0/n=100000/batch=1000                                                        0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=1                                                       53.15m ± 0%                            0.00m ± 0%  -100.00% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=16                                                      53.42m ± 0%                            0.00m ± 0%  -100.00% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=64                                                      54.01m ± 0%                            0.00m ± 0%  -100.00% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=256                                                     56.52m ± 0%                            0.00m ± 0%  -100.00% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=1000                                                    65.61m ± 0%                            0.00m ± 0%  -100.00% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=1                                                        502.7m ± 0%                             0.0m ± 0%  -100.00% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=16                                                       505.1m ± 0%                             0.0m ± 0%  -100.00% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=64                                                       514.2m ± 0%                             0.0m ± 0%  -100.00% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=256                                                      545.6m ± 0%                             0.0m ± 0%  -100.00% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=1000                                                 649600.00µ ± 0%                           90.00µ ± 0%   -99.99% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=1                                                           0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-1/n=100000/batch=16                                                          0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-1/n=100000/batch=64                                                          0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-1/n=100000/batch=256                                                         0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-1/n=100000/batch=1000                                                        0.000 ± 0%                            0.000 ± 0%         ~ (p=1.000 n=10) ¹
+geomean                                                                                                                  ²                                      ?                       ² ³
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+³ ratios must be >0 to compute geomean
+
+                                                           │ /tmp/pebble-method2-20261005/baseline/comparison-combined.txt │ /tmp/pebble-method2-20261005/candidate/comparison-combined.txt │
+                                                           │                   registry-nodes/tombstone                    │       registry-nodes/tombstone         vs base                 │
+RangeDelIntervalPrototype/disjoint/n=100000/batch=1                                                             17.69 ± 0%                              17.69 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/disjoint/n=100000/batch=16                                                           855.5m ± 0%                             855.5m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/disjoint/n=100000/batch=64                                                           182.6m ± 0%                             182.6m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/disjoint/n=100000/batch=256                                                          37.81m ± 0%                             37.81m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/disjoint/n=100000/batch=1000                                                         7.660m ± 0%                             7.660m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/concentric/n=100000/batch=1                                                           17.69 ± 0%                              17.69 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/concentric/n=100000/batch=16                                                         855.5m ± 0%                             855.5m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/concentric/n=100000/batch=64                                                         182.6m ± 0%                             182.6m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/concentric/n=100000/batch=256                                                        37.81m ± 0%                             37.81m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/concentric/n=100000/batch=1000                                                       7.660m ± 0%                             7.660m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/shared-start/n=100000/batch=1                                                         17.69 ± 0%                              17.69 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/shared-start/n=100000/batch=16                                                       855.5m ± 0%                             855.5m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/shared-start/n=100000/batch=64                                                       182.6m ± 0%                             182.6m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/shared-start/n=100000/batch=256                                                      37.81m ± 0%                             37.81m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/shared-start/n=100000/batch=1000                                                     7.660m ± 0%                             7.660m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/staircase/n=100000/batch=1                                                            17.69 ± 0%                              17.69 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/staircase/n=100000/batch=16                                                          855.5m ± 0%                             855.5m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/staircase/n=100000/batch=64                                                          182.6m ± 0%                             182.6m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/staircase/n=100000/batch=256                                                         37.81m ± 0%                             37.81m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/staircase/n=100000/batch=1000                                                        7.660m ± 0%                             7.660m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/random/n=100000/batch=1                                                               17.69 ± 0%                              17.69 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/random/n=100000/batch=16                                                             855.5m ± 0%                             855.5m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/random/n=100000/batch=64                                                             182.6m ± 0%                             182.6m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/random/n=100000/batch=256                                                            37.81m ± 0%                             37.81m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/random/n=100000/batch=1000                                                           7.660m ± 0%                             7.660m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/full-cover/n=100000/batch=1                                                           17.69 ± 0%                              17.69 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/full-cover/n=100000/batch=16                                                         855.5m ± 0%                             855.5m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/full-cover/n=100000/batch=64                                                         182.6m ± 0%                             182.6m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/full-cover/n=100000/batch=256                                                        37.81m ± 0%                             37.81m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/full-cover/n=100000/batch=1000                                                       7.660m ± 0%                             7.660m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/cycle/n=100000/batch=1                                                                17.69 ± 0%                              17.69 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/cycle/n=100000/batch=16                                                              855.5m ± 0%                             855.5m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/cycle/n=100000/batch=64                                                              182.6m ± 0%                             182.6m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/cycle/n=100000/batch=256                                                             37.81m ± 0%                             37.81m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/cycle/n=100000/batch=1000                                                            7.660m ± 0%                             7.660m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0/n=100000/batch=1                                                             17.69 ± 0%                              17.69 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0/n=100000/batch=16                                                           855.5m ± 0%                             855.5m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0/n=100000/batch=64                                                           182.6m ± 0%                             182.6m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0/n=100000/batch=256                                                          37.81m ± 0%                             37.81m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0/n=100000/batch=1000                                                         7.660m ± 0%                             7.660m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=1                                                          17.69 ± 0%                              17.69 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=16                                                        855.5m ± 0%                             855.5m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=64                                                        182.6m ± 0%                             182.6m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=256                                                       37.81m ± 0%                             37.81m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=1000                                                      7.660m ± 0%                             7.660m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=1                                                           17.69 ± 0%                              17.69 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=16                                                         855.5m ± 0%                             855.5m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=64                                                         182.6m ± 0%                             182.6m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=256                                                        37.81m ± 0%                             37.81m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=1000                                                       7.660m ± 0%                             7.660m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-1/n=100000/batch=1                                                             17.69 ± 0%                              17.69 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-1/n=100000/batch=16                                                           855.5m ± 0%                             855.5m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-1/n=100000/batch=64                                                           182.6m ± 0%                             182.6m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-1/n=100000/batch=256                                                          37.81m ± 0%                             37.81m ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelIntervalPrototype/unique-1/n=100000/batch=1000                                                         7.660m ± 0%                             7.660m ± 0%       ~ (p=1.000 n=10) ¹
+geomean                                                                                                        240.2m                                  240.2m       +0.00%
+¹ all samples are equal
+
+                                                           │ /tmp/pebble-method2-20261005/baseline/comparison-combined.txt │ /tmp/pebble-method2-20261005/candidate/comparison-combined.txt │
+                                                           │                       reused/tombstone                        │            reused/tombstone             vs base                │
+RangeDelIntervalPrototype/disjoint/n=100000/batch=1                                                             85.95 ± 0%                               35.38 ± 0%  -58.84% (p=0.000 n=10)
+RangeDelIntervalPrototype/disjoint/n=100000/batch=16                                                           101.60 ± 0%                               51.02 ± 0%  -49.78% (p=0.000 n=10)
+RangeDelIntervalPrototype/disjoint/n=100000/batch=64                                                           102.40 ± 0%                               51.81 ± 0%  -49.40% (p=0.000 n=10)
+RangeDelIntervalPrototype/disjoint/n=100000/batch=256                                                          102.60 ± 0%                               52.00 ± 0%  -49.32% (p=0.000 n=10)
+RangeDelIntervalPrototype/disjoint/n=100000/batch=1000                                                         102.60 ± 0%                               52.05 ± 0%  -49.27% (p=0.000 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=1                                                           82.20 ± 0%                               43.85 ± 0%  -46.65% (p=0.000 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=16                                                         110.20 ± 0%                               62.76 ± 0%  -43.05% (p=0.000 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=64                                                         111.60 ± 0%                               63.70 ± 0%  -42.92% (p=0.000 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=256                                                        112.00 ± 0%                               63.94 ± 0%  -42.91% (p=0.000 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=1000                                                       112.00 ± 0%                               64.00 ± 0%  -42.86% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=1                                                         91.58 ± 0%                               16.69 ± 0%  -81.78% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=16                                                       144.10 ± 0%                               44.73 ± 0%  -68.96% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=64                                                       146.70 ± 0%                               46.11 ± 0%  -68.57% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=256                                                      147.30 ± 0%                               46.45 ± 0%  -68.47% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=1000                                                     147.50 ± 0%                               46.54 ± 0%  -68.45% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=1                                                           112.50 ± 0%                               35.38 ± 0%  -68.55% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=16                                                          179.20 ± 0%                               79.07 ± 0%  -55.88% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=64                                                          182.50 ± 0%                               81.23 ± 0%  -55.49% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=256                                                         183.40 ± 0%                               81.77 ± 0%  -55.41% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=1000                                                        183.60 ± 0%                               81.90 ± 0%  -55.39% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=1                                                              131.50 ± 0%                               59.38 ± 0%  -54.84% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=16                                                             154.80 ± 0%                               71.36 ± 0%  -53.90% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=64                                                             170.00 ± 0%                               79.22 ± 0%  -53.40% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=256                                                            185.50 ± 0%                               87.21 ± 0%  -52.99% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=1000                                                           199.90 ± 0%                               94.84 ± 0%  -52.56% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=1                                                           85.95 ± 0%                               35.38 ± 0%  -58.84% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=16                                                         101.60 ± 0%                               51.02 ± 0%  -49.78% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=64                                                         102.40 ± 0%                               51.81 ± 0%  -49.40% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=256                                                        102.60 ± 0%                               52.00 ± 0%  -49.32% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=1000                                                       102.60 ± 0%                               52.05 ± 0%  -49.27% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=1                                                                54.50 ± 0%                               14.40 ± 0%  -73.58% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=16                                                               68.28 ± 0%                               21.28 ± 0%  -68.83% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=64                                                               69.03 ± 0%                               21.64 ± 0%  -68.65% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=256                                                              69.53 ± 0%                               21.85 ± 0%  -68.57% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=1000                                                             70.99 ± 0%                               22.75 ± 0%  -67.95% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=1                                                             88.40 ± 0%                               30.12 ± 0%  -65.93% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=16                                                            96.22 ± 0%                               34.13 ± 0%  -64.53% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=64                                                           100.30 ± 0%                               36.25 ± 0%  -63.86% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=256                                                          104.50 ± 0%                               38.61 ± 0%  -63.05% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=1000                                                         109.10 ± 0%                               41.49 ± 0%  -61.97% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=1                                                          88.26 ± 0%                               29.99 ± 0%  -66.02% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=16                                                         96.10 ± 0%                               33.99 ± 0%  -64.63% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=64                                                        100.20 ± 0%                               36.12 ± 0%  -63.95% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=256                                                       104.40 ± 0%                               38.49 ± 0%  -63.13% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=1000                                                      109.00 ± 0%                               41.35 ± 0%  -62.06% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=1                                                           87.11 ± 0%                               29.19 ± 0%  -66.49% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=16                                                          94.95 ± 0%                               33.19 ± 0%  -65.04% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=64                                                          99.06 ± 0%                               35.32 ± 0%  -64.34% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=256                                                        103.50 ± 0%                               37.71 ± 0%  -63.57% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=1000                                                       108.40 ± 0%                               40.61 ± 0%  -62.54% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=1                                                             62.70 ± 0%                               16.49 ± 0%  -73.70% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=16                                                            70.48 ± 0%                               20.42 ± 0%  -71.03% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=64                                                            74.39 ± 0%                               22.32 ± 0%  -70.00% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=256                                                           78.09 ± 0%                               24.02 ± 0%  -69.24% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=1000                                                          80.93 ± 0%                               25.32 ± 0%  -68.71% (p=0.000 n=10)
+geomean                                                                                                         105.3                                    40.83       -61.23%
+
+                                                           │ /tmp/pebble-method2-20261005/baseline/comparison-combined.txt │ /tmp/pebble-method2-20261005/candidate/comparison-combined.txt │
+                                                           │                       visits/tombstone                        │            visits/tombstone             vs base                │
+RangeDelIntervalPrototype/disjoint/n=100000/batch=1                                                            101.60 ± 0%                               52.07 ± 0%  -48.75% (p=0.000 n=10)
+RangeDelIntervalPrototype/disjoint/n=100000/batch=16                                                           101.60 ± 0%                               52.07 ± 0%  -48.75% (p=0.000 n=10)
+RangeDelIntervalPrototype/disjoint/n=100000/batch=64                                                           101.60 ± 0%                               52.07 ± 0%  -48.75% (p=0.000 n=10)
+RangeDelIntervalPrototype/disjoint/n=100000/batch=256                                                          101.60 ± 0%                               52.07 ± 0%  -48.75% (p=0.000 n=10)
+RangeDelIntervalPrototype/disjoint/n=100000/batch=1000                                                         101.60 ± 0%                               52.07 ± 0%  -48.75% (p=0.000 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=1                                                          111.10 ± 0%                               64.02 ± 0%  -42.38% (p=0.000 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=16                                                         111.10 ± 0%                               64.02 ± 0%  -42.38% (p=0.000 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=64                                                         111.10 ± 0%                               64.02 ± 0%  -42.38% (p=0.000 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=256                                                        111.10 ± 0%                               64.02 ± 0%  -42.38% (p=0.000 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=1000                                                       111.10 ± 0%                               64.02 ± 0%  -42.38% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=1                                                         91.58 ± 0%                               17.69 ± 0%  -80.68% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=16                                                        91.58 ± 0%                               17.69 ± 0%  -80.68% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=64                                                        91.58 ± 0%                               17.69 ± 0%  -80.68% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=256                                                       91.58 ± 0%                               17.69 ± 0%  -80.68% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=1000                                                      91.58 ± 0%                               17.69 ± 0%  -80.68% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=1                                                           127.70 ± 0%                               53.07 ± 0%  -58.44% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=16                                                          127.70 ± 0%                               53.07 ± 0%  -58.44% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=64                                                          127.70 ± 0%                               53.07 ± 0%  -58.44% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=256                                                         127.70 ± 0%                               53.07 ± 0%  -58.44% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=1000                                                        127.70 ± 0%                               53.07 ± 0%  -58.44% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=1                                                              125.80 ± 0%                               71.35 ± 0%  -43.28% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=16                                                             125.80 ± 0%                               71.35 ± 0%  -43.28% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=64                                                             125.80 ± 0%                               71.35 ± 0%  -43.28% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=256                                                            125.80 ± 0%                               71.35 ± 0%  -43.28% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=1000                                                           125.80 ± 0%                               71.35 ± 0%  -43.28% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=1                                                          101.60 ± 0%                               52.07 ± 0%  -48.75% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=16                                                         101.60 ± 0%                               52.07 ± 0%  -48.75% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=64                                                         101.60 ± 0%                               52.07 ± 0%  -48.75% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=256                                                        101.60 ± 0%                               52.07 ± 0%  -48.75% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=1000                                                       101.60 ± 0%                               52.07 ± 0%  -48.75% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=1                                                                70.98 ± 0%                               23.48 ± 0%  -66.92% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=16                                                               70.98 ± 0%                               23.48 ± 0%  -66.92% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=64                                                               70.98 ± 0%                               23.48 ± 0%  -66.92% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=256                                                              70.98 ± 0%                               23.48 ± 0%  -66.92% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=1000                                                             70.98 ± 0%                               23.48 ± 0%  -66.92% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=1                                                            114.70 ± 0%                               46.08 ± 0%  -59.83% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=16                                                           114.70 ± 0%                               46.08 ± 0%  -59.83% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=64                                                           114.70 ± 0%                               46.08 ± 0%  -59.83% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=256                                                          114.70 ± 0%                               46.08 ± 0%  -59.83% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=1000                                                         114.70 ± 0%                               46.08 ± 0%  -59.83% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=1                                                         114.50 ± 0%                               45.97 ± 0%  -59.85% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=16                                                        114.50 ± 0%                               45.97 ± 0%  -59.85% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=64                                                        114.50 ± 0%                               45.97 ± 0%  -59.85% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=256                                                       114.50 ± 0%                               45.97 ± 0%  -59.85% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=1000                                                      114.50 ± 0%                               45.97 ± 0%  -59.85% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=1                                                          113.20 ± 0%                               45.50 ± 0%  -59.81% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=16                                                         113.20 ± 0%                               45.50 ± 0%  -59.81% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=64                                                         113.20 ± 0%                               45.50 ± 0%  -59.81% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=256                                                        113.20 ± 0%                               45.50 ± 0%  -59.81% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=1000                                                       113.20 ± 0%                               45.50 ± 0%  -59.81% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=1                                                             81.79 ± 0%                               26.38 ± 0%  -67.75% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=16                                                            81.79 ± 0%                               26.38 ± 0%  -67.75% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=64                                                            81.79 ± 0%                               26.38 ± 0%  -67.75% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=256                                                           81.79 ± 0%                               26.38 ± 0%  -67.75% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=1000                                                          81.79 ± 0%                               26.38 ± 0%  -67.75% (p=0.000 n=10)
+geomean                                                                                                         103.5                                    41.87       -59.53%
+
+                                                           │ /tmp/pebble-method2-20261005/baseline/comparison-combined.txt │ /tmp/pebble-method2-20261005/candidate/comparison-combined.txt │
+                                                           │                             B/op                              │                  B/op                   vs base                │
+RangeDelIntervalPrototype/disjoint/n=100000/batch=1                                                           322.8Mi ± 0%                             310.6Mi ± 0%   -3.78% (p=0.000 n=10)
+RangeDelIntervalPrototype/disjoint/n=100000/batch=16                                                          53.36Mi ± 0%                             41.16Mi ± 0%  -22.88% (p=0.000 n=10)
+RangeDelIntervalPrototype/disjoint/n=100000/batch=64                                                          40.66Mi ± 0%                             28.46Mi ± 0%  -30.02% (p=0.000 n=10)
+RangeDelIntervalPrototype/disjoint/n=100000/batch=256                                                         37.59Mi ± 0%                             25.39Mi ± 0%  -32.47% (p=0.000 n=10)
+RangeDelIntervalPrototype/disjoint/n=100000/batch=1000                                                        36.86Mi ± 0%                             24.65Mi ± 0%  -33.12% (p=0.000 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=1                                                         496.1Mi ± 0%                             353.2Mi ± 0%  -28.80% (p=0.000 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=16                                                        75.25Mi ± 0%                             43.82Mi ± 0%  -41.78% (p=0.000 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=64                                                        55.29Mi ± 0%                             29.12Mi ± 0%  -47.33% (p=0.000 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=256                                                       50.41Mi ± 0%                             25.55Mi ± 0%  -49.30% (p=0.000 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=1000                                                      49.22Mi ± 0%                             24.70Mi ± 0%  -49.83% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=1                                                       777.6Mi ± 0%                             459.4Mi ± 0%  -40.92% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=16                                                      58.52Mi ± 0%                             38.63Mi ± 0%  -33.98% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=64                                                      23.64Mi ± 0%                             18.67Mi ± 0%  -21.03% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=256                                                     15.03Mi ± 0%                             13.79Mi ± 0%   -8.27% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=1000                                                    12.91Mi ± 0%                             12.60Mi ± 0%   -2.44% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=1                                                          987.5Mi ± 0%                             675.4Mi ± 0%  -31.61% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=16                                                         94.90Mi ± 0%                             63.57Mi ± 0%  -33.02% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=64                                                         51.05Mi ± 0%                             34.06Mi ± 0%  -33.28% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=256                                                        40.19Mi ± 0%                             26.79Mi ± 0%  -33.35% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=1000                                                       37.52Mi ± 0%                             25.01Mi ± 0%  -33.34% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=1                                                            1251.3Mi ± 0%                             721.6Mi ± 0%  -42.34% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=16                                                            889.1Mi ± 0%                             496.8Mi ± 0%  -44.12% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=64                                                            699.3Mi ± 0%                             397.8Mi ± 0%  -43.11% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=256                                                           510.2Mi ± 0%                             299.5Mi ± 0%  -41.29% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=1000                                                          334.3Mi ± 0%                             206.3Mi ± 0%  -38.30% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=1                                                         322.8Mi ± 0%                             310.6Mi ± 0%   -3.78% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=16                                                        53.37Mi ± 0%                             41.16Mi ± 0%  -22.88% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=64                                                        40.66Mi ± 0%                             28.46Mi ± 0%  -30.02% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=256                                                       37.60Mi ± 0%                             25.39Mi ± 0%  -32.47% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=1000                                                      36.86Mi ± 0%                             24.65Mi ± 0%  -33.12% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=1                                                              296.1Mi ± 0%                             193.4Mi ± 0%  -34.68% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=16                                                             49.43Mi ± 0%                             31.04Mi ± 0%  -37.22% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=64                                                             37.15Mi ± 0%                             23.44Mi ± 0%  -36.90% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=256                                                            30.27Mi ± 0%                             20.20Mi ± 0%  -33.26% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=1000                                                          12.350Mi ± 0%                             9.017Mi ± 0%  -26.99% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=1                                                           440.1Mi ± 0%                             289.6Mi ± 0%  -34.19% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=16                                                          266.2Mi ± 0%                             162.3Mi ± 0%  -39.04% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=64                                                          213.5Mi ± 0%                             133.1Mi ± 0%  -37.65% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=256                                                         161.2Mi ± 0%                             103.7Mi ± 0%  -35.69% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=1000                                                       104.78Mi ± 0%                             68.39Mi ± 0%  -34.72% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=1                                                        441.4Mi ± 0%                             289.8Mi ± 0%  -34.34% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=16                                                       267.2Mi ± 0%                             162.4Mi ± 0%  -39.23% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=64                                                       214.5Mi ± 0%                             133.3Mi ± 0%  -37.84% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=256                                                      161.9Mi ± 0%                             103.7Mi ± 0%  -35.93% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=1000                                                    105.41Mi ± 0%                             68.62Mi ± 0%  -34.90% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=1                                                         452.0Mi ± 0%                             292.7Mi ± 0%  -35.25% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=16                                                        277.7Mi ± 0%                             165.4Mi ± 0%  -40.45% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=64                                                        224.4Mi ± 0%                             136.2Mi ± 0%  -39.29% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=256                                                       170.0Mi ± 0%                             106.3Mi ± 0%  -37.45% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=1000                                                     110.04Mi ± 0%                             70.79Mi ± 0%  -35.67% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=1                                                           328.3Mi ± 0%                             203.5Mi ± 0%  -38.01% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=16                                                         154.84Mi ± 0%                             77.10Mi ± 0%  -50.20% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=64                                                         103.95Mi ± 0%                             50.73Mi ± 0%  -51.20% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=256                                                         58.08Mi ± 0%                             29.22Mi ± 0%  -49.68% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=1000                                                        23.25Mi ± 0%                             13.29Mi ± 0%  -42.86% (p=0.000 n=10)
+geomean                                                                                                       114.0Mi                                  73.84Mi       -35.22%
+
+                                                           │ /tmp/pebble-method2-20261005/baseline/comparison-combined.txt │ /tmp/pebble-method2-20261005/candidate/comparison-combined.txt │
+                                                           │                           allocs/op                           │               allocs/op                 vs base                │
+RangeDelIntervalPrototype/disjoint/n=100000/batch=1                                                            3.838M ± 0%                              3.738M ± 0%   -2.61% (p=0.000 n=10)
+RangeDelIntervalPrototype/disjoint/n=100000/batch=16                                                           496.1k ± 0%                              396.1k ± 0%  -20.16% (p=0.000 n=10)
+RangeDelIntervalPrototype/disjoint/n=100000/batch=64                                                           345.9k ± 0%                              245.9k ± 0%  -28.91% (p=0.000 n=10)
+RangeDelIntervalPrototype/disjoint/n=100000/batch=256                                                          310.7k ± 0%                              210.7k ± 0%  -32.19% (p=0.000 n=10)
+RangeDelIntervalPrototype/disjoint/n=100000/batch=1000                                                         302.5k ± 0%                              202.5k ± 0%  -33.06% (p=0.000 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=1                                                          5.257M ± 0%                              4.086M ± 0%  -22.27% (p=0.000 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=16                                                         675.4k ± 0%                              417.9k ± 0%  -38.13% (p=0.000 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=64                                                         465.7k ± 0%                              251.3k ± 0%  -46.03% (p=0.000 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=256                                                        415.6k ± 0%                              212.0k ± 0%  -48.98% (p=0.000 n=10)
+RangeDelIntervalPrototype/concentric/n=100000/batch=1000                                                       403.8k ± 0%                              202.9k ± 0%  -49.76% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=1                                                        7.564M ± 0%                              4.957M ± 0%  -34.47% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=16                                                       538.3k ± 0%                              375.4k ± 0%  -30.26% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=64                                                       206.5k ± 0%                              165.7k ± 0%  -19.73% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=256                                                      125.8k ± 0%                              115.6k ± 0%   -8.09% (p=0.000 n=10)
+RangeDelIntervalPrototype/shared-start/n=100000/batch=1000                                                     106.4k ± 0%                              103.8k ± 0%   -2.43% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=1                                                           9.282M ± 0%                              6.726M ± 0%  -27.54% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=16                                                          836.4k ± 0%                              579.7k ± 0%  -30.69% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=64                                                          431.0k ± 0%                              291.8k ± 0%  -32.30% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=256                                                         331.9k ± 0%                              222.1k ± 0%  -33.08% (p=0.000 n=10)
+RangeDelIntervalPrototype/staircase/n=100000/batch=1000                                                        307.9k ± 0%                              205.4k ± 0%  -33.28% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=1                                                             11.444M ± 0%                              7.104M ± 0%  -37.92% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=16                                                             7.342M ± 0%                              4.129M ± 0%  -43.76% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=64                                                             5.741M ± 0%                              3.272M ± 0%  -43.02% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=256                                                            4.182M ± 0%                              2.456M ± 0%  -41.26% (p=0.000 n=10)
+RangeDelIntervalPrototype/random/n=100000/batch=1000                                                           2.739M ± 0%                              1.690M ± 0%  -38.29% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=1                                                          3.838M ± 0%                              3.738M ± 0%   -2.61% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=16                                                         496.1k ± 0%                              396.1k ± 0%  -20.16% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=64                                                         345.9k ± 0%                              245.9k ± 0%  -28.91% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=256                                                        310.7k ± 0%                              210.7k ± 0%  -32.19% (p=0.000 n=10)
+RangeDelIntervalPrototype/full-cover/n=100000/batch=1000                                                       302.5k ± 0%                              202.5k ± 0%  -33.06% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=1                                                               3.619M ± 0%                              2.778M ± 0%  -23.25% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=16                                                              463.9k ± 0%                              313.2k ± 0%  -32.49% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=64                                                              317.1k ± 0%                              204.8k ± 0%  -35.42% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=256                                                             250.7k ± 0%                              168.2k ± 0%  -32.90% (p=0.000 n=10)
+RangeDelIntervalPrototype/cycle/n=100000/batch=1000                                                           101.74k ± 0%                              74.43k ± 0%  -26.84% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=1                                                            4.798M ± 0%                              3.566M ± 0%  -25.69% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=16                                                           2.240M ± 0%                              1.388M ± 0%  -38.01% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=64                                                           1.762M ± 0%                              1.103M ± 0%  -37.38% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=256                                                         1323.3k ± 0%                              851.9k ± 0%  -35.62% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0/n=100000/batch=1000                                                         858.9k ± 0%                              560.9k ± 0%  -34.70% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=1                                                         4.809M ± 0%                              3.567M ± 0%  -25.82% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=16                                                        2.248M ± 0%                              1.389M ± 0%  -38.20% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=64                                                        1.770M ± 0%                              1.105M ± 0%  -37.57% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=256                                                      1328.9k ± 0%                              852.5k ± 0%  -35.85% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.01/n=100000/batch=1000                                                      864.1k ± 0%                              562.7k ± 0%  -34.87% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=1                                                          4.896M ± 0%                              3.591M ± 0%  -26.66% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=16                                                         2.334M ± 0%                              1.414M ± 0%  -39.42% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=64                                                         1.851M ± 0%                              1.129M ± 0%  -39.02% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=256                                                       1395.4k ± 0%                              873.9k ± 0%  -37.37% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-0.1/n=100000/batch=1000                                                       902.0k ± 0%                              580.5k ± 0%  -35.65% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=1                                                            3.882M ± 0%                              2.860M ± 0%  -26.33% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=16                                                          1327.4k ± 0%                              690.6k ± 0%  -47.98% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=64                                                           864.3k ± 0%                              428.3k ± 0%  -50.44% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=256                                                          478.5k ± 0%                              242.1k ± 0%  -49.40% (p=0.000 n=10)
+RangeDelIntervalPrototype/unique-1/n=100000/batch=1000                                                         191.1k ± 0%                              109.4k ± 0%  -42.73% (p=0.000 n=10)
+geomean                                                                                                        1.008M                                   672.7k       -33.28%

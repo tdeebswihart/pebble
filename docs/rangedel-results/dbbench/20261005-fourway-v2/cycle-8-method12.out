@@ -1,0 +1,105 @@
+rangedel: shape=cycle queues=1024 overlap-frac=0 rangedels-per-batch=1 sets-per-batch=-1 iter-frac=-1 db-options=default gomaxprocs=4
+wiping /home/coder/bench/rangedel-db-4way/runs/20261005-fourway-v2/db-cycle-8-method12
+dir /home/coder/bench/rangedel-db-4way/runs/20261005-fourway-v2/db-cycle-8-method12
+concurrency 1
+rangedel_config: arena_bytes=67108864 readers=4 writers=1 reader_interval=1ms writer_interval=1ms
+____elapsed______reads/s_____writes/s___p50(µs)___p95(µs)___p99(µs)___pMax(µs)
+      1.0s         3324          862      16.4      16.4      16.4       41.0
+      2.0s         3761          934      16.4      16.4      16.4       32.8
+      3.0s         3701          925      16.4      16.4      16.4       16.4
+      4.0s         3795          945      16.4      16.4      16.4       16.4
+      5.0s         3739          924      16.4      16.4      16.4       24.6
+      6.0s         3802          946      16.4      16.4      16.4       32.8
+      7.0s         3810          946      16.4      16.4      16.4       41.0
+      8.0s         3813          946      16.4      16.4      16.4       24.6
+      9.0s         3800          947      16.4      16.4      16.4       24.6
+     10.0s         3796          938      16.4      16.4      16.4       16.4
+rangedel_latency: kind=read class=all measurement=service samples=37344 completed_ops=37344 ops/s=3734.2 clipped_ops=0 expected_interval_ns=1000000 p50_us=1.460 p95_us=3.191 p99_us=4.771 p99.9_us=10.655 max_us=37.887
+rangedel_latency: kind=read class=all measurement=corrected samples=37344 completed_ops=37344 ops/s=3734.2 clipped_ops=0 expected_interval_ns=1000000 p50_us=1.460 p95_us=3.191 p99_us=4.771 p99.9_us=10.655 max_us=37.887
+rangedel_latency: kind=read class=iter measurement=service samples=18672 completed_ops=18672 ops/s=1867.1 clipped_ops=0 expected_interval_ns=1000000 p50_us=2.281 p95_us=3.491 p99_us=5.211 p99.9_us=10.247 max_us=26.975
+rangedel_latency: kind=read class=iter measurement=corrected samples=18672 completed_ops=18672 ops/s=1867.1 clipped_ops=0 expected_interval_ns=1000000 p50_us=2.281 p95_us=3.491 p99_us=5.211 p99.9_us=10.247 max_us=26.975
+rangedel_latency: kind=read class=get measurement=service samples=18672 completed_ops=18672 ops/s=1867.1 clipped_ops=0 expected_interval_ns=1000000 p50_us=1.090 p95_us=2.061 p99_us=3.551 p99.9_us=10.655 max_us=37.887
+rangedel_latency: kind=read class=get measurement=corrected samples=18672 completed_ops=18672 ops/s=1867.1 clipped_ops=0 expected_interval_ns=1000000 p50_us=1.090 p95_us=2.061 p99_us=3.551 p99.9_us=10.655 max_us=37.887
+rangedel_latency: kind=commit class=all measurement=service samples=9313 completed_ops=9313 ops/s=931.2 clipped_ops=0 expected_interval_ns=1000000 p50_us=1.840 p95_us=4.843 p99_us=8.247 p99.9_us=20.351 max_us=5586.943
+rangedel_latency: kind=commit class=all measurement=corrected samples=9317 completed_ops=9313 ops/s=931.2 clipped_ops=0 expected_interval_ns=1000000 p50_us=1.840 p95_us=4.851 p99_us=8.327 p99.9_us=21.471 max_us=5586.943
+rangedel_latency: kind=commit class=rangedel measurement=service samples=4657 completed_ops=4657 ops/s=465.7 clipped_ops=0 expected_interval_ns=1000000 p50_us=2.731 p95_us=5.871 p99_us=10.127 p99.9_us=21.471 max_us=5586.943
+rangedel_latency: kind=commit class=rangedel measurement=corrected samples=4661 completed_ops=4657 ops/s=465.7 clipped_ops=0 expected_interval_ns=1000000 p50_us=2.731 p95_us=5.903 p99_us=10.567 p99.9_us=39.423 max_us=5586.943
+rangedel_latency: kind=commit class=point measurement=service samples=4656 completed_ops=4656 ops/s=465.6 clipped_ops=0 expected_interval_ns=1000000 p50_us=0.880 p95_us=1.260 p99_us=2.091 p99.9_us=4.323 max_us=8.303
+rangedel_latency: kind=commit class=point measurement=corrected samples=4656 completed_ops=4656 ops/s=465.6 clipped_ops=0 expected_interval_ns=1000000 p50_us=0.880 p95_us=1.260 p99_us=2.091 p99.9_us=4.323 max_us=8.303
+rangedel_summary: elapsed=10.001s rangedel_batches=4657 rangedel_ops=4657 overlapping_rangedel_ops=0 point_sets=4656 flushes=0 memtable_bytes=786432 memtable_count=2 cumulative_flushable_mem_bytes=527159
+LSM                             |    vtables   |   value sep   |        |   ingested   |    amp
+level       size | tables  size |  count  size |  refsz valblk |     in | tables  size |   r     w
+-----------------+--------------+--------------+---------------+--------+--------------+----------
+total         0B |      0    0B |      0     0 |     0B     0B |  418KB |      0    0B |   0  1.00
+
+COMPACTIONS               |     moved    |     multilevel    |     read     |       written
+level | score    ff   cff | tables  size |   top    in  read | tables  blob | tables  sstsz blobsz
+------+-------------------+--------------+-------------------+--------------+---------------------
+total |     -     -     - |      0    0B |    0B    0B    0B |     0B    0B |      0  418KB     0B
+
+ kind | default  delete  elision  move  read  tomb  rewrite  copy  multi  blob virtual
+count |       0       0        0     0     0     0        0     0      0     0       0
+
+COMMIT PIPELINE
+               wals                |              memtables              |       ingestions
+    files |      written |  overhead |   flushes |       live |     zombie |     total |   flushable
+----------+--------------+-----------+-----------+------------+------------+-----------+------------
+2 (418KB) | 267KB: 418KB |     56.7% |         0 |  2 (768KB) |     0 (0B) |         0 |      0 (0B)
+
+BLOCK CACHE: 0 entries (0B)
+                 miss rate [percentage of total misses] since start
+level      all     |  background    sstdata       sstval      blobval       filter       index
+-------------------+------------------------------------------------------------------------------
+total      0%      |
+
+ITERATORS
+        file cache        |    filter   |    open     |    open
+     entries |   hit rate | utilization |  sst iters  |  snapshots
+-------------+------------+-------------+-------------+------------
+      0 (0B) |       0.0% |        0.0% |           0 |           0
+
+FILES                 physical tables                 |                blob files
+          |     local        shared        remote     |     local        shared        remote
+----------+-------------------------------------------+------------------------------------------
+     live |    0 (0B)        0 (0B)        0 (0B)     |    0 (0B)        0 (0B)        0 (0B)
+   zombie |    0 (0B)        0 (0B)        0 (0B)     |    0 (0B)        0 (0B)        0 (0B)
+ obsolete |    0 (0B)        0 (0B)        0 (0B)     |    0 (0B)        0 (0B)        0 (0B)
+
+MISC            |
+----------------+-----------
+table stats     | all loaded
+table garbage   |
+  point del     | 0B
+  range del     | 0B
+blob values     |
+  total         | 0B
+  refed         | 0B
+  backing-refed | 0B
+
+CGO MEMORY    |          block cache           |                     memtables
+          tot |           tot |           data |            maps |            ents |           tot
+--------------+---------------+----------------+-----------------+-----------------+--------------
+        776KB |         8.2KB |             0B |           8.2KB |              0B |         768KB
+
+COMPACTIONS
+                                                                         |      blob rewrites
+    est. debt |   in progress |  cancelled |   failed |    problem spans |       read |    written
+--------------+---------------+------------+----------+------------------+------------+-----------
+           0B |        0 (0B) |     0 (0B) |        0 |                0 |         0B |         0B
+
+KEYS
+      range keys |       tombstones |      missized tombstones |      point dels |      range dels
+-----------------+------------------+--------------------------+-----------------+----------------
+               0 |                0 |                        0 |              0B |              0B
+
+COMPRESSION
+    algorithm |        tables |    blob files
+
+        Logical bytes compressed / decompressed
+level |  data blocks   |  value blocks  |  other blocks
+
+DELETE PACER   |   in queue   |   deleted
+---------------+--------------+-------------
+        tables |    0 (0B)    |    0 (0B)
+    blob files |    0 (0B)    |    0 (0B)
+   other files |    0 (0B)    |    0 (0B)

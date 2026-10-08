@@ -1,0 +1,70 @@
+goos: linux
+goarch: amd64
+pkg: github.com/cockroachdb/pebble
+cpu: AMD EPYC 9R45
+BenchmarkRangeDelWriteReadBaseline/leveldb.BytewiseComparator/concentric/n=1000/batch=16/get         	     970	   1238803 ns/op	    262144 allocated-arena-bytes	        63.00 batches/epoch	   4194304 configured-arena-bytes	      1999 fragments/epoch	   1000000 history-keys/epoch	      1999 intervals/epoch	      1239 ns/tombstone	      1000 tombstones/epoch	  420834 B/op	    3551 allocs/op
+BenchmarkRangeDelWriteReadBaseline/cockroach_comparator/concentric/n=1000/batch=16/get               	     910	   1318840 ns/op	    262144 allocated-arena-bytes	        63.00 batches/epoch	   4194304 configured-arena-bytes	      1999 fragments/epoch	   1000000 history-keys/epoch	      1999 intervals/epoch	      1319 ns/tombstone	      1000 tombstones/epoch	  420834 B/op	    3551 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/cockroachdb/pebble
+cpu: AMD EPYC 9R45
+BenchmarkRangeDelWriteReadBaseline/leveldb.BytewiseComparator/concentric/n=1000/batch=16/get         	     972	   1239871 ns/op	    262144 allocated-arena-bytes	        63.00 batches/epoch	   4194304 configured-arena-bytes	      1999 fragments/epoch	   1000000 history-keys/epoch	      1999 intervals/epoch	      1240 ns/tombstone	      1000 tombstones/epoch	  420834 B/op	    3551 allocs/op
+BenchmarkRangeDelWriteReadBaseline/cockroach_comparator/concentric/n=1000/batch=16/get               	     912	   1320735 ns/op	    262144 allocated-arena-bytes	        63.00 batches/epoch	   4194304 configured-arena-bytes	      1999 fragments/epoch	   1000000 history-keys/epoch	      1999 intervals/epoch	      1321 ns/tombstone	      1000 tombstones/epoch	  420835 B/op	    3551 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/cockroachdb/pebble
+cpu: AMD EPYC 9R45
+BenchmarkRangeDelWriteReadBaseline/leveldb.BytewiseComparator/concentric/n=1000/batch=16/get         	     970	   1243308 ns/op	    262144 allocated-arena-bytes	        63.00 batches/epoch	   4194304 configured-arena-bytes	      1999 fragments/epoch	   1000000 history-keys/epoch	      1999 intervals/epoch	      1243 ns/tombstone	      1000 tombstones/epoch	  420834 B/op	    3551 allocs/op
+BenchmarkRangeDelWriteReadBaseline/cockroach_comparator/concentric/n=1000/batch=16/get               	     919	   1326236 ns/op	    262144 allocated-arena-bytes	        63.00 batches/epoch	   4194304 configured-arena-bytes	      1999 fragments/epoch	   1000000 history-keys/epoch	      1999 intervals/epoch	      1326 ns/tombstone	      1000 tombstones/epoch	  420834 B/op	    3551 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/cockroachdb/pebble
+cpu: AMD EPYC 9R45
+BenchmarkRangeDelWriteReadBaseline/leveldb.BytewiseComparator/concentric/n=1000/batch=16/get         	     969	   1240553 ns/op	    262144 allocated-arena-bytes	        63.00 batches/epoch	   4194304 configured-arena-bytes	      1999 fragments/epoch	   1000000 history-keys/epoch	      1999 intervals/epoch	      1241 ns/tombstone	      1000 tombstones/epoch	  420834 B/op	    3551 allocs/op
+BenchmarkRangeDelWriteReadBaseline/cockroach_comparator/concentric/n=1000/batch=16/get               	     903	   1314803 ns/op	    262144 allocated-arena-bytes	        63.00 batches/epoch	   4194304 configured-arena-bytes	      1999 fragments/epoch	   1000000 history-keys/epoch	      1999 intervals/epoch	      1315 ns/tombstone	      1000 tombstones/epoch	  420835 B/op	    3551 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/cockroachdb/pebble
+cpu: AMD EPYC 9R45
+BenchmarkRangeDelWriteReadBaseline/leveldb.BytewiseComparator/concentric/n=1000/batch=16/get         	     970	   1236622 ns/op	    262144 allocated-arena-bytes	        63.00 batches/epoch	   4194304 configured-arena-bytes	      1999 fragments/epoch	   1000000 history-keys/epoch	      1999 intervals/epoch	      1237 ns/tombstone	      1000 tombstones/epoch	  420834 B/op	    3551 allocs/op
+BenchmarkRangeDelWriteReadBaseline/cockroach_comparator/concentric/n=1000/batch=16/get               	     918	   1316483 ns/op	    262144 allocated-arena-bytes	        63.00 batches/epoch	   4194304 configured-arena-bytes	      1999 fragments/epoch	   1000000 history-keys/epoch	      1999 intervals/epoch	      1316 ns/tombstone	      1000 tombstones/epoch	  420835 B/op	    3551 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/cockroachdb/pebble
+cpu: AMD EPYC 9R45
+BenchmarkRangeDelWriteReadBaseline/leveldb.BytewiseComparator/concentric/n=1000/batch=16/get         	     969	   1237253 ns/op	    262144 allocated-arena-bytes	        63.00 batches/epoch	   4194304 configured-arena-bytes	      1999 fragments/epoch	   1000000 history-keys/epoch	      1999 intervals/epoch	      1237 ns/tombstone	      1000 tombstones/epoch	  420834 B/op	    3551 allocs/op
+BenchmarkRangeDelWriteReadBaseline/cockroach_comparator/concentric/n=1000/batch=16/get               	     912	   1317343 ns/op	    262144 allocated-arena-bytes	        63.00 batches/epoch	   4194304 configured-arena-bytes	      1999 fragments/epoch	   1000000 history-keys/epoch	      1999 intervals/epoch	      1317 ns/tombstone	      1000 tombstones/epoch	  420835 B/op	    3551 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/cockroachdb/pebble
+cpu: AMD EPYC 9R45
+BenchmarkRangeDelWriteReadBaseline/leveldb.BytewiseComparator/concentric/n=1000/batch=16/get         	     964	   1238374 ns/op	    262144 allocated-arena-bytes	        63.00 batches/epoch	   4194304 configured-arena-bytes	      1999 fragments/epoch	   1000000 history-keys/epoch	      1999 intervals/epoch	      1238 ns/tombstone	      1000 tombstones/epoch	  420834 B/op	    3551 allocs/op
+BenchmarkRangeDelWriteReadBaseline/cockroach_comparator/concentric/n=1000/batch=16/get               	     918	   1326191 ns/op	    262144 allocated-arena-bytes	        63.00 batches/epoch	   4194304 configured-arena-bytes	      1999 fragments/epoch	   1000000 history-keys/epoch	      1999 intervals/epoch	      1326 ns/tombstone	      1000 tombstones/epoch	  420835 B/op	    3551 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/cockroachdb/pebble
+cpu: AMD EPYC 9R45
+BenchmarkRangeDelWriteReadBaseline/leveldb.BytewiseComparator/concentric/n=1000/batch=16/get         	     966	   1244116 ns/op	    262144 allocated-arena-bytes	        63.00 batches/epoch	   4194304 configured-arena-bytes	      1999 fragments/epoch	   1000000 history-keys/epoch	      1999 intervals/epoch	      1244 ns/tombstone	      1000 tombstones/epoch	  420834 B/op	    3551 allocs/op
+BenchmarkRangeDelWriteReadBaseline/cockroach_comparator/concentric/n=1000/batch=16/get               	     919	   1320879 ns/op	    262144 allocated-arena-bytes	        63.00 batches/epoch	   4194304 configured-arena-bytes	      1999 fragments/epoch	   1000000 history-keys/epoch	      1999 intervals/epoch	      1321 ns/tombstone	      1000 tombstones/epoch	  420834 B/op	    3551 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/cockroachdb/pebble
+cpu: AMD EPYC 9R45
+BenchmarkRangeDelWriteReadBaseline/leveldb.BytewiseComparator/concentric/n=1000/batch=16/get         	     967	   1235806 ns/op	    262144 allocated-arena-bytes	        63.00 batches/epoch	   4194304 configured-arena-bytes	      1999 fragments/epoch	   1000000 history-keys/epoch	      1999 intervals/epoch	      1236 ns/tombstone	      1000 tombstones/epoch	  420834 B/op	    3551 allocs/op
+BenchmarkRangeDelWriteReadBaseline/cockroach_comparator/concentric/n=1000/batch=16/get               	     910	   1312802 ns/op	    262144 allocated-arena-bytes	        63.00 batches/epoch	   4194304 configured-arena-bytes	      1999 fragments/epoch	   1000000 history-keys/epoch	      1999 intervals/epoch	      1313 ns/tombstone	      1000 tombstones/epoch	  420834 B/op	    3551 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/cockroachdb/pebble
+cpu: AMD EPYC 9R45
+BenchmarkRangeDelWriteReadBaseline/leveldb.BytewiseComparator/concentric/n=1000/batch=16/get         	     967	   1236401 ns/op	    262144 allocated-arena-bytes	        63.00 batches/epoch	   4194304 configured-arena-bytes	      1999 fragments/epoch	   1000000 history-keys/epoch	      1999 intervals/epoch	      1236 ns/tombstone	      1000 tombstones/epoch	  420834 B/op	    3551 allocs/op
+BenchmarkRangeDelWriteReadBaseline/cockroach_comparator/concentric/n=1000/batch=16/get               	     924	   1304989 ns/op	    262144 allocated-arena-bytes	        63.00 batches/epoch	   4194304 configured-arena-bytes	      1999 fragments/epoch	   1000000 history-keys/epoch	      1999 intervals/epoch	      1305 ns/tombstone	      1000 tombstones/epoch	  420835 B/op	    3551 allocs/op
+PASS

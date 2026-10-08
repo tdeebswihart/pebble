@@ -1,0 +1,13 @@
+study=Pebble range deletion DB comparison with timed flush and compaction
+master_harness=197f5ab769fa7905bc0370313d468a9db6eaa114
+p1=23ea42e87e3b2d95c208b0c66a878cd99b14fbfd
+method1=b2b36d2c7cc2c9b77816c0cdcfa91e5d35a21139
+method12=48e86e8f9676ff16206b14c119ac195f05bce451
+count=5
+duration=60s
+gomaxprocs=4
+db_options=prod-writeheavy
+writer_interval=2ms
+go version go1.27.0 linux/amd64
+Linux tim-benchmarks 7.0.0-1012-aws #12-Ubuntu SMP PREEMPT Tue Aug 11 15:33:41 UTC 2026 x86_64 GNU/Linux
+Model name:                              AMD EPYC 9R45

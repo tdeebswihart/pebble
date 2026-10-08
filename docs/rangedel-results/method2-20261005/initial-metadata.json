@@ -1,0 +1,14 @@
+{
+  "baseline_parent": "78f59f40141f94513490bda672dd8128d7f3acb1",
+  "baseline_metadata": "94eb6028d05256b15482283f6f0e39d7a49030ce\ngo version go1.27.1 darwin/arm64\nDarwin Timporal 25.6.0 Darwin Kernel Version 25.6.0: Tue Aug 18 17:51:47 PDT 2026; root:xnu-12377.161.15.700.19~2/RELEASE_ARM64_T6050 arm64\nApple M5 Max\nProductName:\t\tmacOS\nProductVersion:\t\t26.7.1\nBuildVersion:\t\t25G241\nGOMAXPROCS=1\nSAMPLES=1 BENCHTIME=1x\nbuild: go test -c -o /tmp/pebble-method2-20261005/baseline/pebble.test .\n",
+  "candidate_metadata": "3e1f84a63f3f92b0d82f894f3b641f441d212ead\ngo version go1.27.1 darwin/arm64\nDarwin Timporal 25.6.0 Darwin Kernel Version 25.6.0: Tue Aug 18 17:51:47 PDT 2026; root:xnu-12377.161.15.700.19~2/RELEASE_ARM64_T6050 arm64\nApple M5 Max\nProductName:\t\tmacOS\nProductVersion:\t\t26.7.1\nBuildVersion:\t\t25G241\nGOMAXPROCS=1\nSAMPLES=1 BENCHTIME=1x\nbuild: go test -c -o /tmp/pebble-method2-20261005/candidate/pebble.test .\n",
+  "go": "go version go1.27.1 darwin/arm64",
+  "host": "Darwin Timporal 25.6.0 Darwin Kernel Version 25.6.0: Tue Aug 18 17:51:47 PDT 2026; root:xnu-12377.161.15.700.19~2/RELEASE_ARM64_T6050 arm64",
+  "cpu": "Apple M5 Max",
+  "os": "ProductName:\t\tmacOS\nProductVersion:\t\t26.7.1\nBuildVersion:\t\t25G241",
+  "GOMAXPROCS": 1,
+  "samples": 10,
+  "benchtime": "1x",
+  "filter": "^BenchmarkRangeDelIntervalPrototype$/./n=100000/",
+  "start_utc": "2026-10-05T15:17:46Z"
+}

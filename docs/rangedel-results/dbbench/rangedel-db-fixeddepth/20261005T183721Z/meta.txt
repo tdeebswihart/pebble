@@ -1,0 +1,11 @@
+baseline=9c60a475d2e6fb440b64980b46f75b682acbe7ee
+candidate=48e86e8f9676ff16206b14c119ac195f05bce451
+pkg=.
+regex=^BenchmarkRangeDelWriteReadBaseline$/.*/^concentric$/^n=1000$/^batch=16$/^get$
+COUNT=10
+BENCHTIME=1s
+GOMAXPROCS=1
+BENCHFLAGS=
+go version go1.27.0 linux/amd64
+Linux tim-benchmarks 7.0.0-1012-aws #12-Ubuntu SMP PREEMPT Tue Aug 11 15:33:41 UTC 2026 x86_64 GNU/Linux
+Model name:                              AMD EPYC 9R45

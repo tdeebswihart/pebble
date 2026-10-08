@@ -1,0 +1,14 @@
+{
+  "baseline_parent": "991cea2e60d728fea07de1868a99f1451551b4fc",
+  "baseline_workspace": "deef0ca1d9db4c699f79a7db05bfb97e0b39c59f",
+  "candidate": "de53cf78ad36e3c2aac4e949f6039aa1be263b6f",
+  "go": "go version go1.27.1 darwin/arm64",
+  "host": "Darwin Timporal 25.6.0 Darwin Kernel Version 25.6.0: Tue Aug 18 17:51:47 PDT 2026; root:xnu-12377.161.15.700.19~2/RELEASE_ARM64_T6050 arm64",
+  "cpu": "Apple M5 Max",
+  "os": "ProductName:\t\tmacOS\nProductVersion:\t\t26.7.1\nBuildVersion:\t\t25G241",
+  "GOMAXPROCS": 1,
+  "samples": 10,
+  "benchtime": "1x",
+  "filter": "^BenchmarkRangeDelIntervalPrototype$/./n=100000/",
+  "start_utc": "2026-10-04T22:52:15Z"
+}

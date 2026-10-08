@@ -1,0 +1,27 @@
+                    │ master.bench │              p1.bench               │
+                    │    ops/s     │    ops/s     vs base                │
+UniqueDeleteBatches    1.881k ± 2%   1.883k ± 2%        ~ (p=0.912 n=10)
+UniqueReadOps          1.189k ± 1%   1.362k ± 1%  +14.57% (p=0.000 n=10)
+CycleDeleteBatches      479.0 ± 0%    478.3 ± 1%        ~ (p=0.138 n=10)
+CycleReadOps           3.836k ± 1%   3.820k ± 0%        ~ (p=0.052 n=10)
+geomean                1.424k        1.471k        +3.34%
+
+                 │ master.bench │               p1.bench               │
+                 │    us/op     │    us/op      vs base                │
+UniqueReadP99      30.49k ±  2%   26.85k ±  3%  -11.93% (p=0.000 n=10)
+UniqueReadP999     44.61k ±  4%   41.11k ±  8%   -7.86% (p=0.009 n=10)
+UniqueDeleteP99     19.36 ±  7%    18.59 ±  9%        ~ (p=0.138 n=10)
+UniqueDeleteP999    94.27 ± 31%   103.04 ± 63%        ~ (p=0.986 n=10)
+CycleReadP99        265.0 ±  2%    261.1 ±  2%        ~ (p=0.171 n=10)
+CycleReadP999       407.6 ±  5%    435.8 ±  5%   +6.94% (p=0.002 n=10)
+CycleDeleteP99      2.526 ±  5%    2.561 ±  7%        ~ (p=0.753 n=10)
+CycleDeleteP999     6.837 ± 27%    6.227 ± 37%        ~ (p=0.516 n=10)
+CyclePointP99       1.960 ±  6%    2.045 ±  5%   +4.36% (p=0.030 n=10)
+CyclePointP999      6.193 ± 33%    5.773 ± 22%        ~ (p=0.579 n=10)
+geomean             94.40          92.39         -2.13%
+
+             │ master.bench │              p1.bench               │
+             │     KiB      │     KiB      vs base                │
+UniqueMaxRSS    1.367M ± 6%   1.444M ± 7%   +5.64% (p=0.007 n=10)
+CycleMaxRSS    1065.4k ± 0%   817.0k ± 1%  -23.32% (p=0.000 n=10)
+geomean         1.207M        1.086M        -9.99%

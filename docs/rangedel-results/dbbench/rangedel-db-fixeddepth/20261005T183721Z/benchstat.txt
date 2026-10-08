@@ -1,0 +1,76 @@
+goos: linux
+goarch: amd64
+pkg: github.com/cockroachdb/pebble
+cpu: AMD EPYC 9R45
+                                                                                    │ baseline.txt │            candidate.txt            │
+                                                                                    │    sec/op    │   sec/op     vs base                │
+RangeDelWriteReadBaseline/leveldb.BytewiseComparator/concentric/n=1000/batch=16/get    1.491m ± 0%   1.239m ± 0%  -16.91% (p=0.000 n=10)
+RangeDelWriteReadBaseline/cockroach_comparator/concentric/n=1000/batch=16/get          1.509m ± 0%   1.318m ± 1%  -12.66% (p=0.000 n=10)
+geomean                                                                                1.500m        1.278m       -14.81%
+
+                                                                                    │     baseline.txt      │                 candidate.txt                  │
+                                                                                    │ allocated-arena-bytes │ allocated-arena-bytes  vs base                 │
+RangeDelWriteReadBaseline/leveldb.BytewiseComparator/concentric/n=1000/batch=16/get            256.0Ki ± 0%            256.0Ki ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelWriteReadBaseline/cockroach_comparator/concentric/n=1000/batch=16/get                  256.0Ki ± 0%            256.0Ki ± 0%       ~ (p=1.000 n=10) ¹
+geomean                                                                                        256.0Ki                 256.0Ki       +0.00%
+¹ all samples are equal
+
+                                                                                    │ baseline.txt  │             candidate.txt              │
+                                                                                    │ batches/epoch │ batches/epoch  vs base                 │
+RangeDelWriteReadBaseline/leveldb.BytewiseComparator/concentric/n=1000/batch=16/get      63.00 ± 0%      63.00 ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelWriteReadBaseline/cockroach_comparator/concentric/n=1000/batch=16/get            63.00 ± 0%      63.00 ± 0%       ~ (p=1.000 n=10) ¹
+geomean                                                                                  63.00           63.00       +0.00%
+¹ all samples are equal
+
+                                                                                    │      baseline.txt      │                  candidate.txt                  │
+                                                                                    │ configured-arena-bytes │ configured-arena-bytes  vs base                 │
+RangeDelWriteReadBaseline/leveldb.BytewiseComparator/concentric/n=1000/batch=16/get             4.000Mi ± 0%             4.000Mi ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelWriteReadBaseline/cockroach_comparator/concentric/n=1000/batch=16/get                   4.000Mi ± 0%             4.000Mi ± 0%       ~ (p=1.000 n=10) ¹
+geomean                                                                                         4.000Mi                  4.000Mi       +0.00%
+¹ all samples are equal
+
+                                                                                    │  baseline.txt   │              candidate.txt               │
+                                                                                    │ fragments/epoch │ fragments/epoch  vs base                 │
+RangeDelWriteReadBaseline/leveldb.BytewiseComparator/concentric/n=1000/batch=16/get       1.999k ± 0%       1.999k ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelWriteReadBaseline/cockroach_comparator/concentric/n=1000/batch=16/get             1.999k ± 0%       1.999k ± 0%       ~ (p=1.000 n=10) ¹
+geomean                                                                                   1.999k            1.999k       +0.00%
+¹ all samples are equal
+
+                                                                                    │    baseline.txt    │                candidate.txt                │
+                                                                                    │ history-keys/epoch │ history-keys/epoch  vs base                 │
+RangeDelWriteReadBaseline/leveldb.BytewiseComparator/concentric/n=1000/batch=16/get          1.000M ± 0%          1.000M ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelWriteReadBaseline/cockroach_comparator/concentric/n=1000/batch=16/get                1.000M ± 0%          1.000M ± 0%       ~ (p=1.000 n=10) ¹
+geomean                                                                                      1.000M               1.000M       +0.00%
+¹ all samples are equal
+
+                                                                                    │  baseline.txt   │              candidate.txt               │
+                                                                                    │ intervals/epoch │ intervals/epoch  vs base                 │
+RangeDelWriteReadBaseline/leveldb.BytewiseComparator/concentric/n=1000/batch=16/get       1.999k ± 0%       1.999k ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelWriteReadBaseline/cockroach_comparator/concentric/n=1000/batch=16/get             1.999k ± 0%       1.999k ± 0%       ~ (p=1.000 n=10) ¹
+geomean                                                                                   1.999k            1.999k       +0.00%
+¹ all samples are equal
+
+                                                                                    │ baseline.txt  │             candidate.txt             │
+                                                                                    │ sec/tombstone │ sec/tombstone  vs base                │
+RangeDelWriteReadBaseline/leveldb.BytewiseComparator/concentric/n=1000/batch=16/get     1.490µ ± 0%     1.239µ ± 0%  -16.91% (p=0.000 n=10)
+RangeDelWriteReadBaseline/cockroach_comparator/concentric/n=1000/batch=16/get           1.509µ ± 0%     1.318µ ± 1%  -12.66% (p=0.000 n=10)
+geomean                                                                                 1.500µ          1.278µ       -14.81%
+
+                                                                                    │   baseline.txt   │               candidate.txt               │
+                                                                                    │ tombstones/epoch │ tombstones/epoch  vs base                 │
+RangeDelWriteReadBaseline/leveldb.BytewiseComparator/concentric/n=1000/batch=16/get        1.000k ± 0%        1.000k ± 0%       ~ (p=1.000 n=10) ¹
+RangeDelWriteReadBaseline/cockroach_comparator/concentric/n=1000/batch=16/get              1.000k ± 0%        1.000k ± 0%       ~ (p=1.000 n=10) ¹
+geomean                                                                                    1.000k             1.000k       +0.00%
+¹ all samples are equal
+
+                                                                                    │ baseline.txt │            candidate.txt             │
+                                                                                    │     B/op     │     B/op      vs base                │
+RangeDelWriteReadBaseline/leveldb.BytewiseComparator/concentric/n=1000/batch=16/get   693.6Ki ± 0%   411.0Ki ± 0%  -40.75% (p=0.000 n=10)
+RangeDelWriteReadBaseline/cockroach_comparator/concentric/n=1000/batch=16/get         693.6Ki ± 0%   411.0Ki ± 0%  -40.75% (p=0.000 n=10)
+geomean                                                                               693.6Ki        411.0Ki       -40.75%
+
+                                                                                    │ baseline.txt │            candidate.txt            │
+                                                                                    │  allocs/op   │  allocs/op   vs base                │
+RangeDelWriteReadBaseline/leveldb.BytewiseComparator/concentric/n=1000/batch=16/get    5.812k ± 0%   3.551k ± 0%  -38.90% (p=0.000 n=10)
+RangeDelWriteReadBaseline/cockroach_comparator/concentric/n=1000/batch=16/get          5.812k ± 0%   3.551k ± 0%  -38.90% (p=0.000 n=10)
+geomean                                                                                5.812k        3.551k       -38.90%

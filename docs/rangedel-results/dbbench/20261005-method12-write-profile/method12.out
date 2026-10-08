@@ -1,0 +1,173 @@
+rangedel: shape=unique queues=1024 overlap-frac=0.1 rangedels-per-batch=16 sets-per-batch=1 iter-frac=-1 db-options=prod-writeheavy gomaxprocs=4
+wiping /home/coder/bench/rangedel-db-4way/runs/20261005-method12-write-profile/db-method12
+dir /home/coder/bench/rangedel-db-4way/runs/20261005-method12-write-profile/db-method12
+concurrency 1
+rangedel_config: arena_bytes=268435456 readers=0 writers=2 reader_interval=1ms writer_interval=1ms
+____elapsed______reads/s_____writes/s___p50(µs)___p95(µs)___p99(µs)___pMax(µs)
+      1.0s            0         1899       8.2       8.2       8.2        8.2
+      2.0s            0         1913       8.2       8.2       8.2        8.2
+      3.0s            0         1876       8.2       8.2       8.2        8.2
+      4.0s            0         1929       8.2       8.2       8.2        8.2
+      5.0s            0         1888       8.2       8.2       8.2        8.2
+      6.0s            0         1890       8.2       8.2       8.2        8.2
+      7.0s            0         1903       8.2       8.2       8.2        8.2
+      8.0s            0         1894       8.2       8.2       8.2        8.2
+      9.0s            0         1894       8.2       8.2       8.2        8.2
+     10.0s            0         1880       8.2       8.2       8.2        8.2
+     11.0s            0         1888       8.2       8.2       8.2        8.2
+     12.0s            0         1880       8.2       8.2       8.2        8.2
+     13.0s            0         1885       8.2       8.2       8.2        8.2
+     14.0s            0         1903       8.2       8.2       8.2        8.2
+     15.0s            0         1726       8.2       8.2       8.2        8.2
+     16.0s            0         1888       8.2       8.2       8.2        8.2
+     17.0s            0         1897       8.2       8.2       8.2        8.2
+     18.0s            0         1889       8.2       8.2       8.2        8.2
+     19.0s            0         1884       8.2       8.2       8.2        8.2
+     20.0s            0         1886       8.2       8.2       8.2        8.2
+____elapsed______reads/s_____writes/s___p50(µs)___p95(µs)___p99(µs)___pMax(µs)
+     21.0s            0         1876       8.2       8.2       8.2        8.2
+     22.0s            0         1884       8.2       8.2       8.2        8.2
+     23.0s            0         1585       8.2       8.2       8.2        8.2
+     24.0s            0         1902       8.2       8.2       8.2        8.2
+     25.0s            0         1886       8.2       8.2       8.2        8.2
+     26.0s            0         1556       8.2       8.2       8.2        8.2
+     27.0s            0         1900       8.2       8.2       8.2        8.2
+     28.0s            0         1880       8.2       8.2       8.2        8.2
+     29.0s            0         1886       8.2       8.2       8.2        8.2
+     30.0s            0         1888       8.2       8.2       8.2        8.2
+     31.0s            0         1880       8.2       8.2       8.2        8.2
+     32.0s            0         1884       8.2       8.2       8.2        8.2
+     33.0s            0         1902       8.2       8.2       8.2        8.2
+     34.0s            0         1902       8.2       8.2       8.2        8.2
+     35.0s            0         1886       8.2       8.2       8.2        8.2
+     36.0s            0         1896       8.2       8.2       8.2        8.2
+     37.0s            0         1878       8.2       8.2       8.2        8.2
+     38.0s            0         1885       8.2       8.2       8.2        8.2
+     39.0s            0         1882       8.2       8.2       8.2        8.2
+     40.0s            0         1888       8.2       8.2       8.2        8.2
+____elapsed______reads/s_____writes/s___p50(µs)___p95(µs)___p99(µs)___pMax(µs)
+     41.0s            0         1876       8.2       8.2       8.2        8.2
+     42.0s            0         1886       8.2       8.2       8.2        8.2
+     43.0s            0         1485       8.2       8.2       8.2        8.2
+     44.0s            0         1931       8.2       8.2       8.2        8.2
+     45.0s            0         1910       8.2       8.2       8.2        8.2
+     46.0s            0         1910       8.2       8.2       8.2        8.2
+     47.0s            0         1902       8.2       8.2       8.2        8.2
+     48.0s            0         1886       8.2       8.2       8.2        8.2
+     49.0s            0         1882       8.2       8.2       8.2        8.2
+     50.0s            0         1890       8.2       8.2       8.2        8.2
+     51.0s            0         1883       8.2       8.2       8.2        8.2
+     52.0s            0         1893       8.2       8.2       8.2        8.2
+     53.0s            0         1866       8.2       8.2       8.2        8.2
+     54.0s            0         1942       8.2       8.2       8.2        8.2
+     55.0s            0         1917       8.2       8.2       8.2        8.2
+     56.0s            0         1904       8.2       8.2       8.2        8.2
+     57.0s            0         1912       8.2       8.2       8.2        8.2
+     58.0s            0         1528       8.2       8.2       8.2        8.2
+     59.0s            0         1878       8.2       8.2       8.2        8.2
+     60.0s            0         1892       8.2       8.2       8.2        8.2
+rangedel_latency: kind=read class=all measurement=service samples=0 completed_ops=0 ops/s=0.0 clipped_ops=0 expected_interval_ns=1000000 p50_us=0.000 p95_us=0.000 p99_us=0.000 p99.9_us=0.000 max_us=0.000
+rangedel_latency: kind=read class=all measurement=corrected samples=0 completed_ops=0 ops/s=0.0 clipped_ops=0 expected_interval_ns=1000000 p50_us=0.000 p95_us=0.000 p99_us=0.000 p99.9_us=0.000 max_us=0.000
+rangedel_latency: kind=read class=iter measurement=service samples=0 completed_ops=0 ops/s=0.0 clipped_ops=0 expected_interval_ns=1000000 p50_us=0.000 p95_us=0.000 p99_us=0.000 p99.9_us=0.000 max_us=0.000
+rangedel_latency: kind=read class=iter measurement=corrected samples=0 completed_ops=0 ops/s=0.0 clipped_ops=0 expected_interval_ns=1000000 p50_us=0.000 p95_us=0.000 p99_us=0.000 p99.9_us=0.000 max_us=0.000
+rangedel_latency: kind=read class=get measurement=service samples=0 completed_ops=0 ops/s=0.0 clipped_ops=0 expected_interval_ns=1000000 p50_us=0.000 p95_us=0.000 p99_us=0.000 p99.9_us=0.000 max_us=0.000
+rangedel_latency: kind=read class=get measurement=corrected samples=0 completed_ops=0 ops/s=0.0 clipped_ops=0 expected_interval_ns=1000000 p50_us=0.000 p95_us=0.000 p99_us=0.000 p99.9_us=0.000 max_us=0.000
+rangedel_latency: kind=commit class=all measurement=service samples=111993 completed_ops=111993 ops/s=1866.5 clipped_ops=0 expected_interval_ns=1000000 p50_us=59.295 p95_us=91.071 p99_us=108.287 p99.9_us=237.311 max_us=172883.967
+rangedel_latency: kind=commit class=all measurement=corrected samples=112554 completed_ops=111993 ops/s=1866.5 clipped_ops=0 expected_interval_ns=1000000 p50_us=59.583 p95_us=91.839 p99_us=129.023 p99.9_us=115802.111 max_us=172883.967
+rangedel_latency: kind=commit class=rangedel measurement=service samples=111993 completed_ops=111993 ops/s=1866.5 clipped_ops=0 expected_interval_ns=1000000 p50_us=59.295 p95_us=91.071 p99_us=108.287 p99.9_us=237.311 max_us=172883.967
+rangedel_latency: kind=commit class=rangedel measurement=corrected samples=112554 completed_ops=111993 ops/s=1866.5 clipped_ops=0 expected_interval_ns=1000000 p50_us=59.583 p95_us=91.839 p99_us=129.023 p99.9_us=115802.111 max_us=172883.967
+rangedel_latency: kind=commit class=point measurement=service samples=0 completed_ops=0 ops/s=0.0 clipped_ops=0 expected_interval_ns=1000000 p50_us=0.000 p95_us=0.000 p99_us=0.000 p99.9_us=0.000 max_us=0.000
+rangedel_latency: kind=commit class=point measurement=corrected samples=0 completed_ops=0 ops/s=0.0 clipped_ops=0 expected_interval_ns=1000000 p50_us=0.000 p95_us=0.000 p99_us=0.000 p99.9_us=0.000 max_us=0.000
+rangedel_summary: elapsed=60.001s rangedel_batches=111993 rangedel_ops=1791888 overlapping_rangedel_ops=178472 point_sets=111993 flushes=6 memtable_bytes=67108864 memtable_count=1 cumulative_flushable_mem_bytes=158894267
+LSM                             |    vtables   |   value sep   |        |   ingested   |    amp
+level       size | tables  size |  count  size |  refsz valblk |     in | tables  size |   r     w
+-----------------+--------------+--------------+---------------+--------+--------------+----------
+   L0         0B |      0    0B |      0     0 |     0B     0B |   77MB |      0    0B |   0  0.60
+   L6        8KB |      1   8KB |      0     0 |     0B     0B |   23MB |      0    0B |   1  0.00
+-----------------+--------------+--------------+---------------+--------+--------------+----------
+total        8KB |      1   8KB |      0     0 |     0B     0B |   88MB |      0    0B |   1  1.53
+
+COMPACTIONS               |     moved    |     multilevel    |     read     |       written
+level | score    ff   cff | tables  size |   top    in  read | tables  blob | tables  sstsz blobsz
+------+-------------------+--------------+-------------------+--------------+---------------------
+   L0 |     -     0     0 |      0    0B |    0B    0B    0B |     0B    0B |     22   47MB     0B
+   L6 |     -  0.00  0.00 |      9  23MB |    0B    0B    0B |   47MB    0B |      5   40KB     0B
+------+-------------------+--------------+-------------------+--------------+---------------------
+total |     -     -     - |      9  23MB |    0B    0B    0B |   47MB    0B |     27  135MB     0B
+
+ kind | default  delete  elision  move  read  tomb  rewrite  copy  multi  blob virtual
+count |      13       0        0     9     0     0        0     0      0     0       0
+
+COMMIT PIPELINE
+               wals                |              memtables              |       ingestions
+    files |    written |  overhead |   flushes |       live |     zombie |     total |   flushable
+----------+------------+-----------+-----------+------------+------------+-----------+------------
+ 1 (11MB) | 86MB: 88MB |      2.4% |         6 |   1 (64MB) |   1 (64MB) |         0 |      0 (0B)
+
+BLOCK CACHE: 0 entries (0B)
+                 miss rate [percentage of total misses] since start
+level      all     |  background    sstdata       sstval      blobval       filter       index
+-------------------+------------------------------------------------------------------------------
+ n/a   100% [98%]  |                                                                   100% [98%]
+  L0   100% [1.3%] | 100% [0.8%]  100% [0.5%]
+  L6   100% [0.8%] | 100% [0.8%]
+-------------------+------------------------------------------------------------------------------
+total     100%     | 100% [1.6%]  100% [0.5%]                                          100% [98%]
+
+ITERATORS
+        file cache        |    filter   |    open     |    open
+     entries |   hit rate | utilization |  sst iters  |  snapshots
+-------------+------------+-------------+-------------+------------
+      0 (0B) |      99.2% |        0.0% |           0 |           0
+
+FILES                 physical tables                 |                blob files
+          |     local        shared        remote     |     local        shared        remote
+----------+-------------------------------------------+------------------------------------------
+     live |    1 (8KB)       0 (0B)        0 (0B)     |    0 (0B)        0 (0B)        0 (0B)
+   zombie |    0 (0B)        0 (0B)        0 (0B)     |    0 (0B)        0 (0B)        0 (0B)
+ obsolete |    0 (0B)        0 (0B)        0 (0B)     |    0 (0B)        0 (0B)        0 (0B)
+
+MISC            |
+----------------+-----------
+table stats     | all loaded
+table garbage   |
+  point del     | 0B
+  range del     | 0B
+blob values     |
+  total         | 0B
+  refed         | 0B
+  backing-refed | 0B
+
+CGO MEMORY    |          block cache           |                     memtables
+          tot |           tot |           data |            maps |            ents |           tot
+--------------+---------------+----------------+-----------------+-----------------+--------------
+        128MB |         8.5KB |             0B |           8.2KB |            240B |         128MB
+
+COMPACTIONS
+                                                                         |      blob rewrites
+    est. debt |   in progress |  cancelled |   failed |    problem spans |       read |    written
+--------------+---------------+------------+----------+------------------+------------+-----------
+           0B |        0 (0B) |     0 (0B) |        0 |                0 |         0B |         0B
+
+KEYS
+      range keys |       tombstones |      missized tombstones |      point dels |      range dels
+-----------------+------------------+--------------------------+-----------------+----------------
+               0 |                0 |                        0 |              0B |              0B
+
+COMPRESSION
+    algorithm |          tables |    blob files
+--------------+-----------------+--------------
+         none |           1.4KB |
+        minlz | 5.8KB (CR=1.26) |
+
+        Logical bytes compressed / decompressed
+level |  data blocks   |  value blocks  |  other blocks
+------+----------------+----------------+---------------
+L0-L4 |  67KB / 56KB   |    0B / 0B     |   14KB / 0B
+   L6 |  37KB / 41KB   |    0B / 0B     |   3.5KB / 0B
+
+DELETE PACER   |   in queue   |   deleted
+---------------+--------------+-------------
+        tables |    0 (0B)    |  26 (47MB)
+    blob files |    0 (0B)    |    0 (0B)
+   other files |    0 (0B)    |  1 (4.7MB)

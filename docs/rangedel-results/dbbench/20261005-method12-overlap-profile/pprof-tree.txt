@@ -1,0 +1,389 @@
+File: 48e86e8f9676ff16206b14c119ac195f05bce451-pebble
+Build ID: 2d50b3506bb8701c6571f36351a7bcd2ef21bd3f
+Type: cpu
+Time: 2026-10-05 15:56:11 EDT
+Duration: 59.99s, Total samples = 15.06s (25.10%)
+Showing nodes accounting for 13.21s, 87.72% of 15.06s total
+Dropped 322 nodes (cum <= 0.08s)
+Showing top 80 nodes out of 169
+----------------------------------------------------------+-------------
+      flat  flat%   sum%        cum   cum%   calls calls% + context 	 	 
+----------------------------------------------------------+-------------
+                                             1.74s 71.31% |   github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).compare
+                                             0.26s 10.66% |   github.com/cockroachdb/pebble/internal/keyspan.(*Fragmenter).truncateAndFlush
+                                             0.19s  7.79% |   github.com/cockroachdb/pebble/internal/keyspan.SortSpansByEndKey.func1
+                                             0.08s  3.28% |   github.com/cockroachdb/pebble/internal/keyspan.(*Fragmenter).flush
+                                             0.07s  2.87% |   github.com/cockroachdb/pebble/internal/arenaskl.(*Skiplist).findSplice
+                                             0.04s  1.64% |   github.com/cockroachdb/pebble/internal/keyspan.(*Fragmenter).Add
+                                             0.03s  1.23% |   github.com/cockroachdb/pebble/internal/compact.(*Iter).Next
+     1.25s  8.30%  8.30%      2.44s 16.20%                | github.com/cockroachdb/pebble/cockroachkvs.Compare
+                                             1.16s 47.54% |   bytes.Compare (inline)
+----------------------------------------------------------+-------------
+                                             1.04s   100% |   bytes.Compare
+     1.04s  6.91% 15.21%      1.04s  6.91%                | cmpbody
+----------------------------------------------------------+-------------
+                                             1.32s   100% |   runtime.scanSpan
+     0.77s  5.11% 20.32%      1.32s  8.76%                | runtime.scanObjectsSmall
+                                             0.50s 37.88% |   runtime.tryDeferToSpanScan
+                                             0.05s  3.79% |   runtime.extractHeapBitsSmall
+----------------------------------------------------------+-------------
+                                             3.21s   100% |   github.com/cockroachdb/pebble/internal/keyspan.(*Fragmenter).Add
+     0.72s  4.78% 25.10%      3.21s 21.31%                | github.com/cockroachdb/pebble/internal/keyspan.(*Fragmenter).truncateAndFlush
+                                             2.04s 63.55% |   github.com/cockroachdb/pebble/internal/keyspan.(*Fragmenter).flush
+                                             0.26s  8.10% |   github.com/cockroachdb/pebble/cockroachkvs.Compare
+                                             0.19s  5.92% |   runtime.bulkBarrierPreWrite
+----------------------------------------------------------+-------------
+                                             0.78s   100% |   slices.pdqsortCmpFunc[go.shape.struct { Trailer github.com/cockroachdb/pebble/internal/base.InternalKeyTrailer; Suffix []uint8; Value []uint8 }]
+     0.72s  4.78% 29.88%      0.78s  5.18%                | slices.partialInsertionSortCmpFunc[go.shape.struct { Trailer github.com/cockroachdb/pebble/internal/base.InternalKeyTrailer; Suffix []uint8; Value []uint8 }]
+----------------------------------------------------------+-------------
+                                             0.50s 66.67% |   github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).balance
+                                             0.25s 33.33% |   github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).tagRange
+     0.68s  4.52% 34.40%      0.75s  4.98%                | github.com/cockroachdb/pebble.rangeDelPull
+                                             0.07s  9.33% |   github.com/cockroachdb/pebble.rangeDelHeight (inline)
+----------------------------------------------------------+-------------
+                                             3.50s   100% |   github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).insert
+     0.65s  4.32% 38.71%      3.50s 23.24%                | github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).ensureBoundary
+                                             1.08s 30.86% |   github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).compare
+                                             1.08s 30.86% |   github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).expose
+                                             0.62s 17.71% |   github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).balance
+                                             0.06s  1.71% |   runtime.newobject
+----------------------------------------------------------+-------------
+                                             0.44s 77.19% |   runtime.typedslicecopy
+                                             0.03s  5.26% |   github.com/cockroachdb/pebble/internal/keyspan.(*Fragmenter).flush
+                                             0.02s  3.51% |   github.com/cockroachdb/pebble/internal/keyspan.(*Key).CopyFrom
+     0.57s  3.78% 42.50%      0.57s  3.78%                | runtime.memmove
+----------------------------------------------------------+-------------
+                                             0.67s   100% |   runtime.scanSpan
+     0.48s  3.19% 45.68%      0.67s  4.45%                | runtime.scanObjectSmall
+                                             0.13s 19.40% |   runtime.tryDeferToSpanScan
+                                             0.06s  8.96% |   runtime.extractHeapBitsSmall
+----------------------------------------------------------+-------------
+                                             0.50s 56.82% |   runtime.scanObjectsSmall
+                                             0.15s 17.05% |   runtime.scanSpan
+                                             0.13s 14.77% |   runtime.scanObjectSmall
+                                             0.10s 11.36% |   runtime.wbBufFlush1
+     0.43s  2.86% 48.54%      0.88s  5.84%                | runtime.tryDeferToSpanScan
+                                             0.22s 25.00% |   runtime.spanClass.sizeclass (inline)
+                                             0.14s 15.91% |   runtime.(*spanInlineMarkBits).tryAcquire
+----------------------------------------------------------+-------------
+                                             0.41s   100% |   runtime.scanSpan
+     0.41s  2.72% 51.26%      0.41s  2.72%                | internal/runtime/gc/scan.scanSpanPackedAVX512
+----------------------------------------------------------+-------------
+                                             1.03s 73.57% |   github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).expose
+                                             0.37s 26.43% |   github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).tagRange
+     0.37s  2.46% 53.72%      1.40s  9.30%                | github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).copy
+                                             1.03s 73.57% |   runtime.newobject
+----------------------------------------------------------+-------------
+                                             0.20s 57.14% |   _.goready.func1
+     0.35s  2.32% 56.04%      0.35s  2.32%                | runtime.futex
+----------------------------------------------------------+-------------
+                                             1.82s   100% |   github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).insert
+     0.24s  1.59% 57.64%      1.82s 12.08%                | github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).tagRange
+                                             0.85s 46.70% |   github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).compare
+                                             0.37s 20.33% |   github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).copy
+                                             0.25s 13.74% |   github.com/cockroachdb/pebble.rangeDelPull
+                                             0.11s  6.04% |   github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).expose
+----------------------------------------------------------+-------------
+                                             0.22s 95.65% |   runtime.tryDeferToSpanScan (inline)
+     0.23s  1.53% 59.16%      0.23s  1.53%                | runtime.spanClass.sizeclass
+----------------------------------------------------------+-------------
+                                             2.88s   100% |   runtime.gcDrain
+     0.22s  1.46% 60.62%      2.88s 19.12%                | runtime.scanSpan
+                                             1.32s 45.83% |   runtime.scanObjectsSmall
+                                             0.67s 23.26% |   runtime.scanObjectSmall
+                                             0.41s 14.24% |   internal/runtime/gc/scan.scanSpanPackedAVX512
+                                             0.15s  5.21% |   runtime.tryDeferToSpanScan
+                                             0.09s  3.12% |   runtime.spanSetScans
+----------------------------------------------------------+-------------
+                                             0.13s 65.00% |   runtime.(*mcache).refill
+                                             0.05s 25.00% |   runtime.mallocgcSmallScanNoHeader
+                                             0.02s 10.00% |   runtime.mallocgcSmallScanHeader
+     0.20s  1.33% 61.95%      0.20s  1.33%                | runtime.memclrNoHeapPointers
+----------------------------------------------------------+-------------
+                                             0.18s   100% |   github.com/cockroachdb/pebble/internal/keyspan/keyspanimpl.(*MergingIter).findNextFragmentSet
+     0.17s  1.13% 63.08%      0.18s  1.20%                | github.com/cockroachdb/pebble/cockroachkvs.Equal
+----------------------------------------------------------+-------------
+                                             2.04s   100% |   github.com/cockroachdb/pebble/internal/keyspan.(*Fragmenter).truncateAndFlush
+     0.17s  1.13% 64.21%      2.04s 13.55%                | github.com/cockroachdb/pebble/internal/keyspan.(*Fragmenter).flush
+                                             0.47s 23.04% |   runtime.typedslicecopy
+                                             0.45s 22.06% |   slices.pdqsortCmpFunc[go.shape.struct { Trailer github.com/cockroachdb/pebble/internal/base.InternalKeyTrailer; Suffix []uint8; Value []uint8 }]
+                                             0.39s 19.12% |   slices.pdqsortCmpFunc[go.shape.struct { Start []uint8; End []uint8; Keys []github.com/cockroachdb/pebble/internal/keyspan.Key; KeysOrder github.com/cockroachdb/pebble/internal/keyspan.KeysOrder }]
+                                             0.38s 18.63% |   runtime.mallocgc
+                                             0.08s  3.92% |   github.com/cockroachdb/pebble/cockroachkvs.Compare
+                                             0.06s  2.94% |   runtime.systemstack
+                                             0.03s  1.47% |   runtime.memmove
+----------------------------------------------------------+-------------
+                                             0.17s   100% |   runtime.mallocgcSmallScanHeader (inline)
+     0.17s  1.13% 65.34%      0.17s  1.13%                | runtime.heapSetTypeSmallHeader
+----------------------------------------------------------+-------------
+                                             1.08s 90.76% |   github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).ensureBoundary
+                                             0.11s  9.24% |   github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).tagRange
+     0.16s  1.06% 66.40%      1.19s  7.90%                | github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).expose
+                                             1.03s 86.55% |   github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).copy
+----------------------------------------------------------+-------------
+                                             0.15s 93.75% |   github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).compare (inline)
+     0.16s  1.06% 67.46%      0.16s  1.06%                | github.com/cockroachdb/pebble/internal/arenaskl.(*Arena).getBytes
+----------------------------------------------------------+-------------
+                                             1.08s 52.94% |   github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).ensureBoundary
+                                             0.85s 41.67% |   github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).tagRange
+                                             0.11s  5.39% |   github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).insert
+     0.15s     1% 68.46%      2.04s 13.55%                | github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).compare
+                                             1.74s 85.29% |   github.com/cockroachdb/pebble/cockroachkvs.Compare
+                                             0.15s  7.35% |   github.com/cockroachdb/pebble/internal/arenaskl.(*Arena).getBytes (inline)
+----------------------------------------------------------+-------------
+                                             0.24s   100% |   github.com/cockroachdb/pebble.(*Batch).Commit
+     0.15s     1% 69.46%      0.24s  1.59%                | github.com/cockroachdb/pebble/internal/arenaskl.(*Skiplist).findSplice
+                                             0.07s 29.17% |   github.com/cockroachdb/pebble/cockroachkvs.Compare
+----------------------------------------------------------+-------------
+     0.13s  0.86% 70.32%      0.14s  0.93%                | github.com/cockroachdb/pebble/internal/arenaskl.(*Iterator).Next
+----------------------------------------------------------+-------------
+                                             0.14s   100% |   github.com/cockroachdb/pebble/internal/keyspan.(*Span).CopyFrom (inline)
+     0.12s   0.8% 71.12%      0.14s  0.93%                | github.com/cockroachdb/pebble/internal/keyspan.(*Key).CopyFrom
+                                             0.02s 14.29% |   runtime.memmove
+----------------------------------------------------------+-------------
+                                             0.07s 63.64% |   github.com/cockroachdb/pebble.rangeDelPull (inline)
+                                             0.04s 36.36% |   github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).balance (inline)
+     0.11s  0.73% 71.85%      0.11s  0.73%                | github.com/cockroachdb/pebble.rangeDelHeight
+----------------------------------------------------------+-------------
+                                             0.11s   100% |   runtime.(*mheap).initSpan
+     0.11s  0.73% 72.58%      0.11s  0.73%                | runtime.(*mspan).init
+----------------------------------------------------------+-------------
+                                             0.06s 54.55% |   runtime.scanObjectSmall
+                                             0.05s 45.45% |   runtime.scanObjectsSmall
+     0.11s  0.73% 73.31%      0.11s  0.73%                | runtime.extractHeapBitsSmall
+----------------------------------------------------------+-------------
+                                             1.07s 69.93% |   runtime.newobject
+                                             0.38s 24.84% |   github.com/cockroachdb/pebble/internal/keyspan.(*Fragmenter).flush
+                                             0.03s  1.96% |   github.com/cockroachdb/pebble/bench.(*uniqueWriter).nextRange
+                                             0.02s  1.31% |   github.com/cockroachdb/pebble.(*Batch).Commit
+     0.11s  0.73% 74.04%      1.53s 10.16%                | runtime.mallocgc
+                                             0.97s 63.40% |   runtime.mallocgcSmallScanNoHeader
+                                             0.38s 24.84% |   runtime.mallocgcSmallScanHeader
+----------------------------------------------------------+-------------
+                                             0.97s   100% |   runtime.mallocgc
+     0.11s  0.73% 74.77%      0.97s  6.44%                | runtime.mallocgcSmallScanNoHeader
+                                             0.42s 43.30% |   runtime.(*mcache).refill
+                                             0.16s 16.49% |   runtime.heapSetTypeNoHeader (inline)
+                                             0.09s  9.28% |   runtime.nextFreeFast (inline)
+                                             0.05s  5.15% |   runtime.memclrNoHeapPointers
+                                             0.04s  4.12% |   runtime.systemstack
+----------------------------------------------------------+-------------
+                                             0.09s 81.82% |   runtime.mallocgcSmallScanNoHeader (inline)
+     0.11s  0.73% 75.50%      0.11s  0.73%                | runtime.nextFreeFast
+----------------------------------------------------------+-------------
+                                             0.18s   100% |   runtime.gcDrain
+     0.11s  0.73% 76.23%      0.18s  1.20%                | runtime.scanObject
+                                             0.03s 16.67% |   runtime.typePointers.next
+----------------------------------------------------------+-------------
+                                             0.10s   100% |   bytes.Compare
+     0.10s  0.66% 76.89%      0.10s  0.66%                | internal/bytealg.Compare
+----------------------------------------------------------+-------------
+                                             0.15s   100% |   runtime.heapSetTypeNoHeader
+     0.10s  0.66% 77.56%      0.15s     1%                | runtime.(*mspan).writeHeapBitsSmall
+----------------------------------------------------------+-------------
+                                             0.33s   100% |   slices.pdqsortCmpFunc[go.shape.struct { Start []uint8; End []uint8; Keys []github.com/cockroachdb/pebble/internal/keyspan.Key; KeysOrder github.com/cockroachdb/pebble/internal/keyspan.KeysOrder }]
+     0.10s  0.66% 78.22%      0.33s  2.19%                | slices.partialInsertionSortCmpFunc[go.shape.struct { Start []uint8; End []uint8; Keys []github.com/cockroachdb/pebble/internal/keyspan.Key; KeysOrder github.com/cockroachdb/pebble/internal/keyspan.KeysOrder }]
+                                             0.23s 69.70% |   github.com/cockroachdb/pebble/internal/keyspan.SortSpansByEndKey.func1
+----------------------------------------------------------+-------------
+     0.09s   0.6% 78.82%      0.09s   0.6%                | internal/runtime/syscall/linux.Syscall6
+----------------------------------------------------------+-------------
+                                             0.62s   100% |   github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).ensureBoundary
+     0.08s  0.53% 79.35%      0.62s  4.12%                | github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).balance
+                                             0.50s 80.65% |   github.com/cockroachdb/pebble.rangeDelPull
+                                             0.04s  6.45% |   github.com/cockroachdb/pebble.rangeDelHeight (inline)
+----------------------------------------------------------+-------------
+                                             0.08s   100% |   runtime.(*spanInlineMarkBits).tryAcquire (inline)
+     0.08s  0.53% 79.88%      0.08s  0.53%                | runtime.(*spanScanOwnership).or
+----------------------------------------------------------+-------------
+                                             0.09s   100% |   runtime.scanSpan
+     0.08s  0.53% 80.41%      0.09s   0.6%                | runtime.spanSetScans
+----------------------------------------------------------+-------------
+                                             0.08s   100% |   slices.pdqsortCmpFunc[go.shape.struct { Trailer github.com/cockroachdb/pebble/internal/base.InternalKeyTrailer; Suffix []uint8; Value []uint8 }]
+     0.08s  0.53% 80.94%      0.08s  0.53%                | slices.partitionCmpFunc[go.shape.struct { Trailer github.com/cockroachdb/pebble/internal/base.InternalKeyTrailer; Suffix []uint8; Value []uint8 }]
+----------------------------------------------------------+-------------
+                                             0.23s 88.46% |   slices.partialInsertionSortCmpFunc[go.shape.struct { Start []uint8; End []uint8; Keys []github.com/cockroachdb/pebble/internal/keyspan.Key; KeysOrder github.com/cockroachdb/pebble/internal/keyspan.KeysOrder }]
+                                             0.03s 11.54% |   slices.pdqsortCmpFunc[go.shape.struct { Start []uint8; End []uint8; Keys []github.com/cockroachdb/pebble/internal/keyspan.Key; KeysOrder github.com/cockroachdb/pebble/internal/keyspan.KeysOrder }]
+     0.07s  0.46% 81.41%      0.26s  1.73%                | github.com/cockroachdb/pebble/internal/keyspan.SortSpansByEndKey.func1
+                                             0.19s 73.08% |   github.com/cockroachdb/pebble/cockroachkvs.Compare
+----------------------------------------------------------+-------------
+                                             0.14s   100% |   runtime.sweepone
+     0.07s  0.46% 81.87%      0.14s  0.93%                | runtime.(*sweepLocked).sweep
+                                             0.05s 35.71% |   runtime.systemstack
+----------------------------------------------------------+-------------
+                                             0.05s 62.50% |   runtime.bulkBarrierPreWrite
+                                             0.03s 37.50% |   runtime.scanObject
+     0.07s  0.46% 82.34%      0.08s  0.53%                | runtime.typePointers.next
+----------------------------------------------------------+-------------
+                                             0.14s   100% |   runtime.tryDeferToSpanScan
+     0.06s   0.4% 82.74%      0.14s  0.93%                | runtime.(*spanInlineMarkBits).tryAcquire
+                                             0.08s 57.14% |   runtime.(*spanScanOwnership).or (inline)
+----------------------------------------------------------+-------------
+                                             0.07s 87.50% |   runtime.wbBufFlush1
+     0.06s   0.4% 83.13%      0.08s  0.53%                | runtime.findObject
+----------------------------------------------------------+-------------
+                                             0.08s   100% |   slices.pdqsortCmpFunc[go.shape.struct { Trailer github.com/cockroachdb/pebble/internal/base.InternalKeyTrailer; Suffix []uint8; Value []uint8 }] (inline)
+     0.06s   0.4% 83.53%      0.08s  0.53%                | slices.order2CmpFunc[go.shape.struct { Trailer github.com/cockroachdb/pebble/internal/base.InternalKeyTrailer; Suffix []uint8; Value []uint8 }]
+----------------------------------------------------------+-------------
+                                             0.19s 70.37% |   github.com/cockroachdb/pebble/internal/keyspan.(*Fragmenter).truncateAndFlush
+                                             0.08s 29.63% |   runtime.typedslicecopy
+     0.05s  0.33% 83.86%      0.27s  1.79%                | runtime.bulkBarrierPreWrite
+                                             0.15s 55.56% |   runtime.(*wbBuf).get2 (inline)
+                                             0.05s 18.52% |   runtime.typePointers.next
+----------------------------------------------------------+-------------
+                                             0.47s 82.46% |   github.com/cockroachdb/pebble/internal/keyspan.(*Fragmenter).flush
+                                             0.10s 17.54% |   github.com/cockroachdb/pebble/internal/keyspan/keyspanimpl.(*MergingIter).synthesizeKeys
+     0.05s  0.33% 84.20%      0.57s  3.78%                | runtime.typedslicecopy
+                                             0.44s 77.19% |   runtime.memmove
+                                             0.08s 14.04% |   runtime.bulkBarrierPreWrite
+----------------------------------------------------------+-------------
+                                             0.18s   100% |   github.com/cockroachdb/pebble/internal/compact.(*Iter).Next
+     0.04s  0.27% 84.46%      0.18s  1.20%                | github.com/cockroachdb/pebble/internal/keyspan.(*Span).CopyFrom
+                                             0.14s 77.78% |   github.com/cockroachdb/pebble/internal/keyspan.(*Key).CopyFrom (inline)
+----------------------------------------------------------+-------------
+     0.04s  0.27% 84.73%      0.22s  1.46%                | runtime.sweepone
+                                             0.14s 63.64% |   runtime.(*sweepLocked).sweep
+----------------------------------------------------------+-------------
+                                             5.46s   100% |   github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).publish
+     0.03s   0.2% 84.93%      5.46s 36.25%                | github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).insert
+                                             3.50s 64.10% |   github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).ensureBoundary
+                                             1.82s 33.33% |   github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).tagRange
+                                             0.11s  2.01% |   github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).compare
+----------------------------------------------------------+-------------
+                                             0.94s 95.92% |   github.com/cockroachdb/pebble/internal/keyspan.(*InterleavingIter).nextPos
+     0.03s   0.2% 85.13%      0.98s  6.51%                | github.com/cockroachdb/pebble/internal/keyspan/keyspanimpl.(*MergingIter).findNextFragmentSet
+                                             0.66s 67.35% |   github.com/cockroachdb/pebble/internal/keyspan/keyspanimpl.(*MergingIter).synthesizeKeys
+                                             0.18s 18.37% |   github.com/cockroachdb/pebble/cockroachkvs.Equal
+                                             0.11s 11.22% |   github.com/cockroachdb/pebble/internal/keyspan/keyspanimpl.(*MergingIter).nextEntry
+----------------------------------------------------------+-------------
+                                             0.09s   100% |   github.com/cockroachdb/pebble/internal/keyspan/keyspanimpl.(*MergingIter).nextEntry
+     0.03s   0.2% 85.33%      0.09s   0.6%                | github.com/cockroachdb/pebble/internal/keyspan/keyspanimpl.(*mergingIterLevel).next
+----------------------------------------------------------+-------------
+                                             0.15s   100% |   runtime.systemstack
+     0.03s   0.2% 85.52%      0.15s     1%                | runtime.(*mheap).initSpan
+                                             0.11s 73.33% |   runtime.(*mspan).init
+----------------------------------------------------------+-------------
+                                             3.09s   100% |   runtime.systemstack
+     0.03s   0.2% 85.72%      3.09s 20.52%                | runtime.gcDrain
+                                             2.88s 93.20% |   runtime.scanSpan
+                                             0.18s  5.83% |   runtime.scanObject
+----------------------------------------------------------+-------------
+                                             0.27s   100% |   runtime.systemstack
+     0.02s  0.13% 85.86%      0.27s  1.79%                | _.goready.func1
+                                             0.20s 74.07% |   runtime.futex
+----------------------------------------------------------+-------------
+                                             1.16s   100% |   github.com/cockroachdb/pebble/cockroachkvs.Compare (inline)
+     0.02s  0.13% 85.99%      1.16s  7.70%                | bytes.Compare
+                                             1.04s 89.66% |   cmpbody
+                                             0.10s  8.62% |   internal/bytealg.Compare
+----------------------------------------------------------+-------------
+                                             5.60s   100% |   github.com/cockroachdb/pebble.(*Batch).Commit
+     0.02s  0.13% 86.12%      5.60s 37.18%                | github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).publish
+                                             5.46s 97.50% |   github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).insert
+                                             0.08s  1.43% |   github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).versionInsert
+----------------------------------------------------------+-------------
+                                             0.08s   100% |   github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).publish
+     0.02s  0.13% 86.25%      0.08s  0.53%                | github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).versionInsert
+----------------------------------------------------------+-------------
+     0.02s  0.13% 86.39%      0.12s   0.8%                | github.com/cockroachdb/pebble/bench.(*uniqueWriter).nextRange
+                                             0.03s 25.00% |   runtime.mallocgc
+----------------------------------------------------------+-------------
+                                             1.03s 94.50% |   github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).copy
+                                             0.06s  5.50% |   github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).ensureBoundary
+     0.02s  0.13% 86.52%      1.09s  7.24%                | runtime.newobject
+                                             1.07s 98.17% |   runtime.mallocgc
+----------------------------------------------------------+-------------
+                                             0.19s   100% |   runtime.wbBufFlush.func1
+     0.02s  0.13% 86.65%      0.19s  1.26%                | runtime.wbBufFlush1
+                                             0.10s 52.63% |   runtime.tryDeferToSpanScan
+                                             0.07s 36.84% |   runtime.findObject
+----------------------------------------------------------+-------------
+                                             0.31s   100% |   github.com/cockroachdb/pebble.(*Batch).Commit
+     0.01s 0.066% 86.72%      0.31s  2.06%                | github.com/cockroachdb/pebble.(*memTable).apply.func1
+                                             0.30s 96.77% |   runtime.closechan
+----------------------------------------------------------+-------------
+     0.01s 0.066% 86.79%      1.25s  8.30%                | github.com/cockroachdb/pebble/internal/compact.(*Iter).Next
+                                             0.98s 78.40% |   github.com/cockroachdb/pebble/internal/compact.(*Iter).iterNext
+                                             0.18s 14.40% |   github.com/cockroachdb/pebble/internal/keyspan.(*Span).CopyFrom
+                                             0.03s  2.40% |   github.com/cockroachdb/pebble/cockroachkvs.Compare
+----------------------------------------------------------+-------------
+                                             0.98s   100% |   github.com/cockroachdb/pebble/internal/compact.(*Iter).Next
+     0.01s 0.066% 86.85%      0.98s  6.51%                | github.com/cockroachdb/pebble/internal/compact.(*Iter).iterNext
+                                             0.97s 98.98% |   github.com/cockroachdb/pebble/internal/keyspan.(*InterleavingIter).nextPos
+----------------------------------------------------------+-------------
+     0.01s 0.066% 86.92%      3.26s 21.65%                | github.com/cockroachdb/pebble/internal/keyspan.(*Fragmenter).Add
+                                             3.21s 98.47% |   github.com/cockroachdb/pebble/internal/keyspan.(*Fragmenter).truncateAndFlush
+                                             0.04s  1.23% |   github.com/cockroachdb/pebble/cockroachkvs.Compare
+----------------------------------------------------------+-------------
+                                             0.97s   100% |   github.com/cockroachdb/pebble/internal/compact.(*Iter).iterNext
+     0.01s 0.066% 86.99%      0.97s  6.44%                | github.com/cockroachdb/pebble/internal/keyspan.(*InterleavingIter).nextPos
+                                             0.94s 96.91% |   github.com/cockroachdb/pebble/internal/keyspan/keyspanimpl.(*MergingIter).findNextFragmentSet
+----------------------------------------------------------+-------------
+                                             0.11s   100% |   github.com/cockroachdb/pebble/internal/keyspan/keyspanimpl.(*MergingIter).findNextFragmentSet
+     0.01s 0.066% 87.05%      0.11s  0.73%                | github.com/cockroachdb/pebble/internal/keyspan/keyspanimpl.(*MergingIter).nextEntry
+                                             0.09s 81.82% |   github.com/cockroachdb/pebble/internal/keyspan/keyspanimpl.(*mergingIterLevel).next
+----------------------------------------------------------+-------------
+                                             0.66s   100% |   github.com/cockroachdb/pebble/internal/keyspan/keyspanimpl.(*MergingIter).findNextFragmentSet
+     0.01s 0.066% 87.12%      0.66s  4.38%                | github.com/cockroachdb/pebble/internal/keyspan/keyspanimpl.(*MergingIter).synthesizeKeys
+                                             0.55s 83.33% |   slices.pdqsortCmpFunc[go.shape.struct { Trailer github.com/cockroachdb/pebble/internal/base.InternalKeyTrailer; Suffix []uint8; Value []uint8 }]
+                                             0.10s 15.15% |   runtime.typedslicecopy
+----------------------------------------------------------+-------------
+                                             0.42s 75.00% |   runtime.mallocgcSmallScanNoHeader
+                                             0.13s 23.21% |   runtime.mallocgcSmallScanHeader
+     0.01s 0.066% 87.18%      0.56s  3.72%                | runtime.(*mcache).refill
+                                             0.29s 51.79% |   runtime.systemstack
+                                             0.13s 23.21% |   runtime.memclrNoHeapPointers
+----------------------------------------------------------+-------------
+                                             0.15s   100% |   runtime.bulkBarrierPreWrite (inline)
+     0.01s 0.066% 87.25%      0.15s     1%                | runtime.(*wbBuf).get2
+                                             0.14s 93.33% |   runtime.systemstack
+----------------------------------------------------------+-------------
+                                             0.30s   100% |   github.com/cockroachdb/pebble.(*memTable).apply.func1
+     0.01s 0.066% 87.32%      0.30s  1.99%                | runtime.closechan
+                                             0.28s 93.33% |   runtime.systemstack
+----------------------------------------------------------+-------------
+                                             0.16s   100% |   runtime.mallocgcSmallScanNoHeader (inline)
+     0.01s 0.066% 87.38%      0.16s  1.06%                | runtime.heapSetTypeNoHeader
+                                             0.15s 93.75% |   runtime.(*mspan).writeHeapBitsSmall
+----------------------------------------------------------+-------------
+                                             0.38s   100% |   runtime.mallocgc
+     0.01s 0.066% 87.45%      0.38s  2.52%                | runtime.mallocgcSmallScanHeader
+                                             0.17s 44.74% |   runtime.heapSetTypeSmallHeader (inline)
+                                             0.13s 34.21% |   runtime.(*mcache).refill
+                                             0.04s 10.53% |   runtime.systemstack
+                                             0.02s  5.26% |   runtime.memclrNoHeapPointers
+----------------------------------------------------------+-------------
+                                             0.29s  7.27% |   runtime.(*mcache).refill
+                                             0.28s  7.02% |   runtime.closechan
+                                             0.14s  3.51% |   runtime.(*wbBuf).get2
+                                             0.06s  1.50% |   github.com/cockroachdb/pebble/internal/keyspan.(*Fragmenter).flush
+                                             0.05s  1.25% |   runtime.(*sweepLocked).sweep
+                                             0.04s  1.00% |   runtime.mallocgcSmallScanHeader
+                                             0.04s  1.00% |   runtime.mallocgcSmallScanNoHeader
+     0.01s 0.066% 87.52%      3.99s 26.49%                | runtime.systemstack
+                                             3.09s 77.44% |   runtime.gcDrain
+                                             0.27s  6.77% |   _.goready.func1
+                                             0.20s  5.01% |   runtime.wbBufFlush.func1
+                                             0.15s  3.76% |   runtime.(*mheap).initSpan
+----------------------------------------------------------+-------------
+                                             0.20s   100% |   runtime.systemstack
+     0.01s 0.066% 87.58%      0.20s  1.33%                | runtime.wbBufFlush.func1
+                                             0.19s 95.00% |   runtime.wbBufFlush1
+----------------------------------------------------------+-------------
+                                             0.39s   100% |   github.com/cockroachdb/pebble/internal/keyspan.(*Fragmenter).flush
+     0.01s 0.066% 87.65%      0.39s  2.59%                | slices.pdqsortCmpFunc[go.shape.struct { Start []uint8; End []uint8; Keys []github.com/cockroachdb/pebble/internal/keyspan.Key; KeysOrder github.com/cockroachdb/pebble/internal/keyspan.KeysOrder }]
+                                             0.33s 84.62% |   slices.partialInsertionSortCmpFunc[go.shape.struct { Start []uint8; End []uint8; Keys []github.com/cockroachdb/pebble/internal/keyspan.Key; KeysOrder github.com/cockroachdb/pebble/internal/keyspan.KeysOrder }]
+                                             0.03s  7.69% |   github.com/cockroachdb/pebble/internal/keyspan.SortSpansByEndKey.func1
+----------------------------------------------------------+-------------
+                                             0.55s 55.00% |   github.com/cockroachdb/pebble/internal/keyspan/keyspanimpl.(*MergingIter).synthesizeKeys
+                                             0.45s 45.00% |   github.com/cockroachdb/pebble/internal/keyspan.(*Fragmenter).flush
+     0.01s 0.066% 87.72%         1s  6.64%                | slices.pdqsortCmpFunc[go.shape.struct { Trailer github.com/cockroachdb/pebble/internal/base.InternalKeyTrailer; Suffix []uint8; Value []uint8 }]
+                                             0.78s 78.00% |   slices.partialInsertionSortCmpFunc[go.shape.struct { Trailer github.com/cockroachdb/pebble/internal/base.InternalKeyTrailer; Suffix []uint8; Value []uint8 }]
+                                             0.08s  8.00% |   slices.order2CmpFunc[go.shape.struct { Trailer github.com/cockroachdb/pebble/internal/base.InternalKeyTrailer; Suffix []uint8; Value []uint8 }] (inline)
+                                             0.08s  8.00% |   slices.partitionCmpFunc[go.shape.struct { Trailer github.com/cockroachdb/pebble/internal/base.InternalKeyTrailer; Suffix []uint8; Value []uint8 }]
+----------------------------------------------------------+-------------
+         0     0% 87.72%      6.38s 42.36%                | github.com/cockroachdb/pebble.(*Batch).Commit
+                                             5.60s 87.77% |   github.com/cockroachdb/pebble.(*rangeDelIntervalIndex).publish
+                                             0.31s  4.86% |   github.com/cockroachdb/pebble.(*memTable).apply.func1
+                                             0.24s  3.76% |   github.com/cockroachdb/pebble/internal/arenaskl.(*Skiplist).findSplice
+                                             0.02s  0.31% |   runtime.mallocgc
+----------------------------------------------------------+-------------

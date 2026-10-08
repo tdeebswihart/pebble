@@ -1,0 +1,10 @@
+3e1f84a63f3f92b0d82f894f3b641f441d212ead
+go version go1.27.1 darwin/arm64
+Darwin Timporal 25.6.0 Darwin Kernel Version 25.6.0: Tue Aug 18 17:51:47 PDT 2026; root:xnu-12377.161.15.700.19~2/RELEASE_ARM64_T6050 arm64
+Apple M5 Max
+ProductName:		macOS
+ProductVersion:		26.7.1
+BuildVersion:		25G241
+GOMAXPROCS=1
+SAMPLES=1 BENCHTIME=1x
+build: go test -c -o /tmp/pebble-method2-20261005/candidate/pebble.test .

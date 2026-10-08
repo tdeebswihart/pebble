@@ -1,0 +1,6 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/cockroachdb/pebble
+cpu: Apple M5 Max
+BenchmarkRangeDelIntervalPrototype/disjoint/n=100000/batch=16         	       1	 113041167 ns/op	         0 batch-fresh/tombstone	         0 insert-fresh/tombstone	         7.879 insert-reused/tombstone	         3.043 nodes/tombstone	      1130 ns/tombstone	         0 push-copies/tombstone	         0 push-reused/tombstone	         0.8555 registry-nodes/tombstone	        66.71 reused/tombstone	        83.45 visits/tombstone	43155520 B/op	  396087 allocs/op
+PASS

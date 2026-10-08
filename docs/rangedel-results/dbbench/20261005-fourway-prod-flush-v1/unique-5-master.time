@@ -1,0 +1,23 @@
+	Command being timed: "env GOMAXPROCS=4 /home/coder/bench/rangedel-db-4way/bin/197f5ab769fa7905bc0370313d468a9db6eaa114-pebble bench rangedel /home/coder/bench/rangedel-db-4way/runs/20261005-fourway-prod-flush-v1/db-unique-5-master --wipe --duration=60s --cache=16777216 --readers=4 --reader-interval=1ms --db-options=prod-writeheavy --writers=2 --writer-interval=2ms --rangedel-shape=unique --rangedel-queues=1024 --rangedel-overlap-frac=0.1 --rangedels-per-batch=16 --sets-per-batch=1 --iter-frac=0.5"
+	User time (seconds): 82.80
+	System time (seconds): 0.89
+	Percent of CPU this job got: 139%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:00.14
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 1626164
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 463228
+	Voluntary context switches: 169310
+	Involuntary context switches: 2463
+	Swaps: 0
+	File system inputs: 248
+	File system outputs: 145184
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

@@ -1,0 +1,11 @@
+--- FAIL: TestRangeDelIntervalTreeTagStructure (0.00s)
+    range_del_method2_red_test.go:36: 
+        	Error Trace:	/private/tmp/pebble-method2-baseline-20261005/range_del_method2_red_test.go:36
+        	            				/private/tmp/pebble-method2-baseline-20261005/range_del_method2_red_test.go:45
+        	Error:      	Not equal: 
+        	            	expected: 0x6
+        	            	actual  : 0x7
+        	Test:       	TestRangeDelIntervalTreeTagStructure
+FAIL
+FAIL	github.com/cockroachdb/pebble	0.691s
+FAIL

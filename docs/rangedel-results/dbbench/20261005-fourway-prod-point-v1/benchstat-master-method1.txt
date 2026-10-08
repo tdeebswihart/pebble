@@ -1,0 +1,44 @@
+                    │ master.bench │            method1.bench             │
+                    │    ops/s     │    ops/s      vs base                │
+UniqueDeleteBatches    497.8 ± ∞ ¹    499.1 ± ∞ ¹    +0.26% (p=0.008 n=5)
+UniqueReadOps         1.350k ± ∞ ¹   3.858k ± ∞ ¹  +185.73% (p=0.008 n=5)
+geomean                819.8         1.388k         +69.26%
+¹ need >= 6 samples for confidence interval at level 0.95
+
+                         │ master.bench  │            method1.bench             │
+                         │     us/op     │    us/op      vs base                │
+UniqueReadP99              19972.1 ± ∞ ¹    161.8 ± ∞ ¹   -99.19% (p=0.008 n=5)
+UniqueReadP999             24969.2 ± ∞ ¹    179.3 ± ∞ ¹   -99.28% (p=0.008 n=5)
+UniqueReadCorrectedP99     20250.6 ± ∞ ¹    161.8 ± ∞ ¹   -99.20% (p=0.008 n=5)
+UniqueDeleteP99              20.66 ± ∞ ¹   131.71 ± ∞ ¹  +537.67% (p=0.008 n=5)
+UniqueDeleteP999             82.43 ± ∞ ¹   206.97 ± ∞ ¹  +151.09% (p=0.008 n=5)
+UniqueDeleteCorrectedP99     22.45 ± ∞ ¹   134.66 ± ∞ ¹  +499.88% (p=0.008 n=5)
+UniquePointP99               16.06 ± ∞ ¹    76.99 ± ∞ ¹  +379.31% (p=0.008 n=5)
+UniquePointP999              23.47 ± ∞ ¹   115.78 ± ∞ ¹  +393.27% (p=0.008 n=5)
+UniquePointCorrectedP99      16.43 ± ∞ ¹    77.50 ± ∞ ¹  +371.69% (p=0.008 n=5)
+geomean                      237.4          131.7         -44.52%
+¹ need >= 6 samples for confidence interval at level 0.95
+
+              │ master.bench │         method1.bench          │
+              │   flushes    │   flushes    vs base           │
+UniqueFlushes    6.000 ± ∞ ¹   6.000 ± ∞ ¹  ~ (p=1.000 n=5) ²
+¹ need >= 6 samples for confidence interval at level 0.95
+² all samples are equal
+
+                         │ master.bench │        method1.bench         │
+                         │ compactions  │ compactions  vs base         │
+UniqueDefaultCompactions    7.000 ± ∞ ¹   6.000 ± ∞ ¹  ~ (p=0.405 n=5)
+¹ need >= 6 samples for confidence interval at level 0.95
+
+                     │ master.bench  │             method1.bench              │
+                     │       B       │       B        vs base                 │
+UniqueCompactionRead   13.00Mi ± ∞ ¹   10.00Mi ± ∞ ¹        ~ (p=0.524 n=5)
+UniqueLSMWritten       37.00Mi ± ∞ ¹   37.00Mi ± ∞ ¹        ~ (p=1.000 n=5) ²
+geomean                21.93Mi         19.24Mi        -12.29%
+¹ need >= 6 samples for confidence interval at level 0.95
+² all samples are equal
+
+             │ master.bench │           method1.bench            │
+             │     KiB      │     KiB       vs base              │
+UniqueMaxRSS   1.383M ± ∞ ¹   1.299M ± ∞ ¹  -6.10% (p=0.008 n=5)
+¹ need >= 6 samples for confidence interval at level 0.95

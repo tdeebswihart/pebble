@@ -1,0 +1,23 @@
+$ make format
+exit code: 0
+
+$ go test -tags invariants -run 'RangeDel' -count=1 .
+ok  	github.com/cockroachdb/pebble	19.949s
+exit code: 0
+
+$ go test -race -tags invariants -run 'RangeDel' -count=1 .
+ok  	github.com/cockroachdb/pebble	93.811s
+exit code: 0
+
+$ go build -tags invariants ./...
+(no output)
+exit code: 0
+
+$ GOPATH=/tmp/pebble-step0-gopath:/Users/timods/go STATICCHECK_CACHE=/tmp/pebble-step0-staticcheck make lint TAGS=invariants
+go test -tags 'invariants'  -run . ./internal/lint
+ok  	github.com/cockroachdb/pebble/internal/lint	11.346s
+exit code: 0
+
+$ git diff --check
+(no output)
+exit code: 0

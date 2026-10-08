@@ -1,0 +1,68 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/cockroachdb/pebble
+cpu: Apple M5 Max
+                                                     │ /tmp/pebble-method2-20261005/baseline/benchmark-combined.txt │
+                                                     │                            sec/op                            │
+RangeDelIntervalPrototype/disjoint/n=100000/batch=16                                                   87.74m ± ∞ ¹
+¹ need >= 6 samples for confidence interval at level 0.95
+
+                                                     │ /tmp/pebble-method2-20261005/baseline/benchmark-combined.txt │
+                                                     │                    batch-fresh/tombstone                     │
+RangeDelIntervalPrototype/disjoint/n=100000/batch=16                                                    0.000 ± ∞ ¹
+¹ need >= 6 samples for confidence interval at level 0.95
+
+                                                     │ /tmp/pebble-method2-20261005/baseline/benchmark-combined.txt │
+                                                     │                    insert-fresh/tombstone                    │
+RangeDelIntervalPrototype/disjoint/n=100000/batch=16                                                    0.000 ± ∞ ¹
+¹ need >= 6 samples for confidence interval at level 0.95
+
+                                                     │ /tmp/pebble-method2-20261005/baseline/benchmark-combined.txt │
+                                                     │                   insert-reused/tombstone                    │
+RangeDelIntervalPrototype/disjoint/n=100000/batch=16                                                    12.71 ± ∞ ¹
+¹ need >= 6 samples for confidence interval at level 0.95
+
+                                                     │ /tmp/pebble-method2-20261005/baseline/benchmark-combined.txt │
+                                                     │                       nodes/tombstone                        │
+RangeDelIntervalPrototype/disjoint/n=100000/batch=16                                                    4.043 ± ∞ ¹
+¹ need >= 6 samples for confidence interval at level 0.95
+
+                                                     │ /tmp/pebble-method2-20261005/baseline/benchmark-combined.txt │
+                                                     │                        sec/tombstone                         │
+RangeDelIntervalPrototype/disjoint/n=100000/batch=16                                                   877.4n ± ∞ ¹
+¹ need >= 6 samples for confidence interval at level 0.95
+
+                                                     │ /tmp/pebble-method2-20261005/baseline/benchmark-combined.txt │
+                                                     │                    push-copies/tombstone                     │
+RangeDelIntervalPrototype/disjoint/n=100000/batch=16                                                    0.000 ± ∞ ¹
+¹ need >= 6 samples for confidence interval at level 0.95
+
+                                                     │ /tmp/pebble-method2-20261005/baseline/benchmark-combined.txt │
+                                                     │                    push-reused/tombstone                     │
+RangeDelIntervalPrototype/disjoint/n=100000/batch=16                                                    0.000 ± ∞ ¹
+¹ need >= 6 samples for confidence interval at level 0.95
+
+                                                     │ /tmp/pebble-method2-20261005/baseline/benchmark-combined.txt │
+                                                     │                   registry-nodes/tombstone                   │
+RangeDelIntervalPrototype/disjoint/n=100000/batch=16                                                   855.5m ± ∞ ¹
+¹ need >= 6 samples for confidence interval at level 0.95
+
+                                                     │ /tmp/pebble-method2-20261005/baseline/benchmark-combined.txt │
+                                                     │                       reused/tombstone                       │
+RangeDelIntervalPrototype/disjoint/n=100000/batch=16                                                    101.6 ± ∞ ¹
+¹ need >= 6 samples for confidence interval at level 0.95
+
+                                                     │ /tmp/pebble-method2-20261005/baseline/benchmark-combined.txt │
+                                                     │                       visits/tombstone                       │
+RangeDelIntervalPrototype/disjoint/n=100000/batch=16                                                    101.6 ± ∞ ¹
+¹ need >= 6 samples for confidence interval at level 0.95
+
+                                                     │ /tmp/pebble-method2-20261005/baseline/benchmark-combined.txt │
+                                                     │                             B/op                             │
+RangeDelIntervalPrototype/disjoint/n=100000/batch=16                                                  53.36Mi ± ∞ ¹
+¹ need >= 6 samples for confidence interval at level 0.95
+
+                                                     │ /tmp/pebble-method2-20261005/baseline/benchmark-combined.txt │
+                                                     │                          allocs/op                           │
+RangeDelIntervalPrototype/disjoint/n=100000/batch=16                                                   496.1k ± ∞ ¹
+¹ need >= 6 samples for confidence interval at level 0.95
