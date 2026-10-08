@@ -28,6 +28,23 @@ func newArena(n uint32) *Arena {
 	return NewArena(make([]byte, n))
 }
 
+func TestArenaBytes(t *testing.T) {
+	buf := make([]byte, 16)
+	a := NewArena(buf)
+	offset, err := a.alloc(15, 1, 0)
+	require.NoError(t, err)
+	copy(buf[offset:], "abcdefghijklmno")
+	b := a.Bytes(offset, 15)
+	require.Equal(t, []byte("abcdefghijklmno"), b)
+	require.True(t, &b[0] == &buf[offset])
+	require.Nil(t, a.Bytes(0, 0))
+	for _, off := range []uint32{offset, a.Capacity()} {
+		b := a.Bytes(off, 0)
+		require.NotNil(t, b)
+		require.Empty(t, b)
+	}
+}
+
 // TestArenaSizeOverflow tests that large allocations do not cause Arena's
 // internal size accounting to overflow and produce incorrect results.
 func TestArenaSizeOverflow(t *testing.T) {

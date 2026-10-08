@@ -291,7 +291,7 @@ func (it *Iterator) TreeStepsNode() treesteps.NodeInfo {
 }
 
 func (it *Iterator) decodeKey() {
-	it.kv.K.UserKey = it.list.arena.getBytes(it.nd.keyOffset, it.nd.keySize)
+	it.kv.K.UserKey = it.list.arena.Bytes(it.nd.keyOffset, it.nd.keySize)
 	it.kv.K.Trailer = it.nd.keyTrailer
 }
 

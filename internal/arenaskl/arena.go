@@ -105,7 +105,11 @@ func (a *Arena) alloc(size, alignment, overflow uint32) (uint32, error) {
 	return offset, nil
 }
 
-func (a *Arena) getBytes(offset uint32, size uint32) []byte {
+// Bytes returns size bytes at offset in the arena. The offset and size must
+// describe a valid range in this arena. The returned bytes belong to the arena
+// and must not be modified. Offset zero returns nil; a nonzero offset with size
+// zero returns a non-nil empty slice.
+func (a *Arena) Bytes(offset, size uint32) []byte {
 	if offset == 0 {
 		return nil
 	}

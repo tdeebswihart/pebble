@@ -117,6 +117,156 @@ func TestFull(t *testing.T) {
 	require.Equal(t, ErrArenaFull, err)
 }
 
+func TestAddWithOffsets(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		key, value []byte
+	}{
+		{"nonempty", []byte("key"), []byte("value")},
+		{"nil-key", nil, []byte("value")},
+		{"empty-key", []byte{}, []byte("value")},
+		{"nil-value", []byte("key"), nil},
+		{"empty-value", []byte("key"), []byte{}},
+		{"both-empty", nil, nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			l := NewSkiplist(newArena(arenaSize), bytes.Compare)
+			key := base.MakeInternalKey(bytes.Clone(tc.key), 10, base.InternalKeyKindRangeDelete)
+			value := bytes.Clone(tc.value)
+			keyOff, valueOff, err := l.AddWithOffsets(key, value)
+			require.NoError(t, err)
+			require.NotZero(t, keyOff)
+			storedKey := l.Arena().Bytes(keyOff, uint32(len(tc.key)))
+			storedValue := l.Arena().Bytes(valueOff, uint32(len(tc.value)))
+			require.NotNil(t, storedKey)
+			require.NotNil(t, storedValue)
+			require.True(t, bytes.Equal(tc.key, storedKey))
+			require.True(t, bytes.Equal(tc.value, storedValue))
+			for i := range key.UserKey {
+				key.UserKey[i] ^= 0xff
+			}
+			for i := range value {
+				value[i] ^= 0xff
+			}
+			require.True(t, bytes.Equal(tc.key, storedKey))
+			require.True(t, bytes.Equal(tc.value, storedValue))
+
+			it := l.NewIter(base.DefaultSplit, nil, nil)
+			defer it.Close()
+			kv := it.First()
+			require.NotNil(t, kv)
+			require.Equal(t, key.Trailer, kv.K.Trailer)
+			require.True(t, slices.Equal(tc.key, kv.K.UserKey))
+			iterValue := mustGetValue(t, kv.V)
+			require.True(t, bytes.Equal(tc.value, iterValue))
+			require.Nil(t, it.Next())
+		})
+	}
+}
+
+func TestAddWithOffsetsVersions(t *testing.T) {
+	l := NewSkiplist(newArena(arenaSize), bytes.Compare)
+	type offsets struct{ key, value uint32 }
+	var stored [3]offsets
+	for i := range stored {
+		key := base.MakeInternalKey([]byte("key"), base.SeqNum(i+1), base.InternalKeyKindSet)
+		keyOff, valueOff, err := l.AddWithOffsets(key, makeValue(i))
+		require.NoError(t, err)
+		stored[i] = offsets{keyOff, valueOff}
+	}
+	it := l.NewIter(base.DefaultSplit, nil, nil)
+	defer it.Close()
+	kv := it.First()
+	for i := len(stored) - 1; i >= 0; i-- {
+		require.NotNil(t, kv)
+		require.Equal(t, base.SeqNum(i+1), kv.K.SeqNum())
+		key := l.Arena().Bytes(stored[i].key, 3)
+		value := l.Arena().Bytes(stored[i].value, uint32(len(makeValue(i))))
+		require.Equal(t, []byte("key"), key)
+		require.Equal(t, []byte("key"), kv.K.UserKey)
+		iterValue := mustGetValue(t, kv.V)
+		require.Equal(t, makeValue(i), value)
+		require.Equal(t, value, iterValue)
+		kv = it.Next()
+	}
+	require.Nil(t, kv)
+}
+
+func TestAddWithOffsetsErrors(t *testing.T) {
+	l := NewSkiplist(newArena(1000), bytes.Compare)
+	key := makeIntKey(0)
+	require.NoError(t, l.Add(key, makeValue(0)))
+	size := l.Size()
+	_, _, err := l.AddWithOffsets(key, []byte("replacement"))
+	require.Equal(t, ErrRecordExists, err)
+	require.Equal(t, size, l.Size())
+	it := l.NewIter(base.DefaultSplit, nil, nil)
+	require.Equal(t, makeValue(0), mustGetValue(t, it.First().V))
+	require.NoError(t, it.Close())
+	count := 1
+	for ; count < 100; count++ {
+		_, _, err = l.AddWithOffsets(makeIntKey(count), makeValue(count))
+		if err == ErrArenaFull {
+			break
+		}
+		require.NoError(t, err)
+	}
+	require.Equal(t, ErrArenaFull, err)
+	require.Equal(t, count, length(l))
+	_, _, err = l.AddWithOffsets(makeIkey("new-key"), nil)
+	require.Equal(t, ErrArenaFull, err)
+	err = l.Add(makeIkey("another-key"), nil)
+	require.Equal(t, ErrArenaFull, err)
+}
+
+func TestAddWithOffsetsConcurrent(t *testing.T) {
+	const keys, contenders = 32, 8
+	l := NewSkiplist(newArena(arenaSize), bytes.Compare)
+	l.testing = true
+	type result struct {
+		keyOff, valueOff uint32
+		key, value       []byte
+		err              error
+	}
+	results := make(chan result, keys*contenders)
+	start := make(chan struct{})
+	var wg sync.WaitGroup
+	for i := range keys {
+		for j := range contenders {
+			wg.Go(func() {
+				<-start
+				key, value := makeIntKey(i), makeValue(j)
+				keyOff, valueOff, err := l.AddWithOffsets(key, value)
+				results <- result{keyOff, valueOff, key.UserKey, value, err}
+			})
+		}
+	}
+	close(start)
+	wg.Wait()
+	close(results)
+	it := l.NewIter(base.DefaultSplit, nil, nil)
+	defer it.Close()
+	successes := 0
+	for r := range results {
+		if r.err != nil {
+			require.Equal(t, ErrRecordExists, r.err)
+			continue
+		}
+		successes++
+		key := l.Arena().Bytes(r.keyOff, uint32(len(r.key)))
+		value := l.Arena().Bytes(r.valueOff, uint32(len(r.value)))
+		require.Equal(t, r.key, key)
+		require.Equal(t, r.value, value)
+		kv := it.SeekGE(r.key, base.SeekGEFlagsNone)
+		require.NotNil(t, kv)
+		require.Equal(t, key, kv.K.UserKey)
+		require.Equal(t, value, mustGetValue(t, kv.V))
+	}
+	require.Equal(t, keys, successes)
+	require.Equal(t, keys, length(l))
+	require.Equal(t, keys, lengthRev(l))
+}
+
 func mustGetValue(t *testing.T, lv base.InternalValue) []byte {
 	v, _, err := lv.Value(nil)
 	require.NoError(t, err)

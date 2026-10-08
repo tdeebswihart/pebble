@@ -101,7 +101,8 @@ type Inserter struct {
 // Add inserts a key-value pair into the skiplist. Using an Inserter (rather
 // than calling Skiplist.Add) improves performance for sequential inserts.
 func (ins *Inserter) Add(list *Skiplist, key base.InternalKey, value []byte) error {
-	return list.addInternal(key, value, ins)
+	_, err := list.addInternal(key, value, ins)
+	return err
 }
 
 var (
@@ -174,12 +175,27 @@ func (s *Skiplist) Size() uint32 { return s.arena.Size() }
 // Add returns ErrArenaFull.
 func (s *Skiplist) Add(key base.InternalKey, value []byte) error {
 	var ins Inserter
-	return s.addInternal(key, value, &ins)
+	_, err := s.addInternal(key, value, &ins)
+	return err
 }
 
-func (s *Skiplist) addInternal(key base.InternalKey, value []byte, ins *Inserter) error {
+// AddWithOffsets adds a key-value pair with the same behavior as Add. On success,
+// it returns the arena offsets of the stored user key (excluding the trailer)
+// and value. On error, the offsets are zero.
+func (s *Skiplist) AddWithOffsets(
+	key base.InternalKey, value []byte,
+) (keyOff, valueOff uint32, err error) {
+	var ins Inserter
+	nd, err := s.addInternal(key, value, &ins)
+	if err != nil {
+		return 0, 0, err
+	}
+	return nd.keyOffset, nd.keyOffset + nd.keySize, nil
+}
+
+func (s *Skiplist) addInternal(key base.InternalKey, value []byte, ins *Inserter) (*node, error) {
 	if s.findSplice(key, ins) {
-		return ErrRecordExists
+		return nil, ErrRecordExists
 	}
 
 	if s.testing {
@@ -191,7 +207,7 @@ func (s *Skiplist) addInternal(key base.InternalKey, value []byte, ins *Inserter
 
 	nd, height, err := s.newNode(key, value)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	ndOffset := s.arena.getPointerOffset(unsafe.Pointer(nd))
@@ -276,7 +292,7 @@ func (s *Skiplist) addInternal(key base.InternalKey, value []byte, ins *Inserter
 					panic(errors.AssertionFailedf("how can another thread have inserted a node at a non-base level?"))
 				}
 
-				return ErrRecordExists
+				return nil, ErrRecordExists
 			}
 			invalidateSplice = true
 		}
@@ -295,7 +311,7 @@ func (s *Skiplist) addInternal(key base.InternalKey, value []byte, ins *Inserter
 		}
 	}
 
-	return nil
+	return nd, nil
 }
 
 // NewIter returns a new Iterator object. The split function is used to extract

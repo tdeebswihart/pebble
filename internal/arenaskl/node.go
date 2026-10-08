@@ -114,11 +114,11 @@ func newRawNode(arena *Arena, height uint32, keySize, valueSize uint32) (nd *nod
 }
 
 func (n *node) getKeyBytes(arena *Arena) []byte {
-	return arena.getBytes(n.keyOffset, n.keySize)
+	return arena.Bytes(n.keyOffset, n.keySize)
 }
 
 func (n *node) getValue(arena *Arena) []byte {
-	return arena.getBytes(n.keyOffset+n.keySize, uint32(n.valueSize))
+	return arena.Bytes(n.keyOffset+n.keySize, uint32(n.valueSize))
 }
 
 func (n *node) nextOffset(h int) uint32 {
